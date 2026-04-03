@@ -1,0 +1,176 @@
+// test_mh_basic.mh
+// MetaHDL Parser Input Test
+//
+// Grammar features tested (per mparser.g4):
+//
+// PORT DECLARATIONS:
+//   - force_port_declaration (line 8-11)
+//   - port_declaration: simple, with range, 2D (lines 413-416)
+//   - port_direction: input, output, inout, nonport (line 419)
+//
+// PARAMETER DECLARATIONS:
+//   - parameter assignments (lines 422-424)
+//   - localparam (line 423)
+//
+// VARIABLE DECLARATIONS:
+//   - simple, with range, 2D (lines 435-439)
+//   - types: wire, reg, logic, int, integer (line 442)
+//
+// EXPRESSIONS:
+//   - binary ops: +, -, *, /, %, **, <<, >> (lines 353-360)
+//   - conditional: ||, &&, ==, !=, <, >, <=, >= (lines 363-370)
+//   - unary: ~, !, |, &, ^ (lines 346-348, 362)
+//   - ternary ? : (line 361)
+//   - $clog2, function calls, concatenation (lines 342-344)
+//
+// ASSIGN BLOCKS:
+//   - assign net_lval = expression; (line 445)
+//
+// COMBINATIONAL BLOCKS:
+//   - always_comb with if/case (line 454)
+//   - case/casez/unique case/priority case (lines 401-406)
+//
+// FSM BLOCKS:
+//   - fsm fsm_nc with clock/reset (lines 468-477)
+//
+// INSTANCE BLOCKS:
+//   - parameter override, port connections (lines 480-496)
+
+// ============================================================================
+// Port declarations (force + simple)
+// ============================================================================
+force input clk;
+force output data_out;
+force input [31:0] data_in;
+
+input rst_n;
+input [DATA_WIDTH-1:0] addr;
+output [DATA_WIDTH-1:0] result;
+inout control_bus;
+nonport internal_flag;
+
+// ============================================================================
+// Parameter declarations
+// ============================================================================
+parameter DATA_WIDTH = 32, ADDR_WIDTH = 16, NUM_STAGES = 4;
+localparam MAX_VAL = 1024, MIN_VAL = 0;
+parameter RESET_VAL = 8'hFF;
+
+// ============================================================================
+// Variable declarations: wire, reg, logic with ranges
+// ============================================================================
+wire enable;
+wire [31:0] intermediate;
+reg [DATA_WIDTH-1:0] pipeline_reg;
+reg state_reg;
+logic [15:0] comb_result;
+logic [7:0] fifo_data [15:0];
+int counter;
+integer loop_idx;
+
+// ============================================================================
+// Assign blocks with various expressions
+// ============================================================================
+assign enable = (addr < MAX_VAL) && (!rst_n || rst_n);
+
+assign intermediate = (data_in + DATA_WIDTH) ** 2;
+
+assign result = (counter > 0) ? pipeline_reg : {$clog2(DATA_WIDTH){1'b1}};
+
+assign comb_result = (intermediate >> 4) & 16'hFFFF;
+
+// ============================================================================
+// FSM block (simple)
+// ============================================================================
+fsm ctrl_fsm;
+    IDLE: begin
+        if (enable) begin
+            goto COMPUTE;
+        end
+    end
+    COMPUTE: begin
+        comb_result <= data_in + pipeline_reg;
+        if (counter >= NUM_STAGES) begin
+            goto DONE;
+        end else begin
+            goto COMPUTE;
+        end
+    end
+    DONE: begin
+        result <= comb_result * DATA_WIDTH;
+        goto IDLE;
+    end
+endfsm
+
+// ============================================================================
+// FSM block with clock/reset
+// ============================================================================
+fsm_nc data_fsm, clk, rst_n;
+    WAIT: begin
+        if (data_in > 0) begin
+            goto PROCESS;
+        end
+    end
+    PROCESS: begin
+        pipeline_reg <= data_in ^ intermediate;
+        if (counter < DATA_WIDTH) begin
+            goto PROCESS;
+        end else begin
+            goto COMPLETE;
+        end
+    end
+    COMPLETE: begin
+        result <= pipeline_reg;
+        goto WAIT;
+    end
+endfsm
+
+// ============================================================================
+// Combinational block with if/case
+// ============================================================================
+always_comb begin
+    if (rst_n == 0) begin
+        comb_result = 16'd0;
+    end else if (enable) begin
+        case (state_reg)
+            0: comb_result = data_in[15:0];
+            1: comb_result = data_in[15:0] + ADDR_WIDTH;
+            2: comb_result = data_in[15:0] * 2;
+            default: comb_result = 16'hXXXX;
+        endcase
+    end else begin
+        comb_result = 0;
+    end
+end
+
+// Always_comb with unique case
+always_comb begin
+    unique case (addr[1:0])
+        2'b00: result = data_in;
+        2'b01: result = data_in << 1;
+        2'b10: result = data_in >> 1;
+        default: result = 32'b0;
+    endcase
+end
+
+// ============================================================================
+// FF block 
+// ============================================================================
+ff clk;
+    pipeline_reg <= data_in + result;
+endff
+
+ff clk, rst_n;
+    if (rst_n == 0) begin
+        counter <= 0;
+    end else begin
+        counter <= counter + 1;
+    end
+endff
+
+// ============================================================================
+// Instance block with parameter override and connections
+// ============================================================================
+counter_unit #(.WIDTH(DATA_WIDTH), .RESET(0)) my_counter (.clk(clk), .rst_n(rst_n));
+
+adder_module .a(data_in), .b(result), .sum(intermediate);

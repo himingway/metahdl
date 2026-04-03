@@ -1,4 +1,5 @@
-%output = "vpp.bison.cc"
+%require "3.8"
+%output "vpp.bison.cc"
 %defines
 
 %{

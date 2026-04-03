@@ -1,3 +1,6 @@
+# Makefile for MetaHDL compiler
+# Requires: bison 3.8+, flex 2.6+
+
 release =
 
 FLEX = flex

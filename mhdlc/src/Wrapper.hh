@@ -2,7 +2,6 @@
 #define __WRAPPER_HH__
 
 #include "location.hh"
-#include "position.hh"
 
 #include <libgen.h>
 

@@ -1,8 +1,8 @@
-%require "2.5"
+%require "3.8"
 %skeleton "lalr1.cc"
 %glr-parser
 %verbose
-%error-verbose
+%define parse.error verbose
 %debug
 %locations
 %initial-action
@@ -11,9 +11,9 @@
   @$.begin.filename = @$.end.filename = &wrapper.filename;
 };
 %defines
-%define "parser_class_name" "mppParser"
+%define api.parser.class {mppParser}
  // %name-prefix="mhdl"
-%output="mppParser.bison.cc"
+%output "mppParser.bison.cc"
 
 
 

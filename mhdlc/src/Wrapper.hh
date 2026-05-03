@@ -3,6 +3,7 @@
 
 #include "location.hh"
 
+#include <cstring>
 #include <libgen.h>
 
 #include <map>

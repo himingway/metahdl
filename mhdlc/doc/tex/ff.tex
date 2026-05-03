@@ -43,7 +43,7 @@ always_ff @ (posedge clk)
 In \mhdl{} new FF syntax, keyword `ff' is followed by two optional 
 identifiers: one is clock name, the other is reset name. If reset
 name is omitted, there is no reset clause in \texttt{always\_ff} 
-block. If both of them are omitted, default name `clock' and `reset\_n' 
+block. If both of them are omitted, default name `clk' and `rst\_n' 
 are used, both reset clause and value refresh clause are generated. 
 
 `ff\_item'\footnote{Maybe you need \autoref{sec:bnf} if you don't know what I'm saying.} 

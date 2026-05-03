@@ -31,7 +31,7 @@ coded in a separate \gls{code block}, so the \mhdl{if}-\mhdl{else} branches
 can be reduced. \gls{mhdl} provides a new \mhdl{ff}-\mhdl{endff} \gls{code block}
 to such reduced \gls*{ff} coding. Such new syntax can eliminate redundancy. 
 \gls{ff} code in follow two forms are equivalent. 
-\begin{mhdle}
+\begin{lstlisting}
 // troditional sequential block
 always_ff @ (posedge clk or negedge rst_n)
   if (!rst_n)
@@ -43,7 +43,7 @@ always_ff @ (posedge clk or negedge rst_n)
 ff; 
   a_ff, a, 1'b0;
 endff
-\end{mhdle}
+\end{lstlisting}
 
 \mhdl{ff} block can specify clock and reset signal name, however, they are 
 usually ommitted to further reduce redundancy. Each line in \mhdl{ff} block
@@ -58,17 +58,17 @@ describes a \gls{ff}. A line has three element:
 Here is example:
 
 \begin{minipage}[t]{.48\textwidth}
-\begin{mhdle}[caption={MetaHDL FF syntax}]
+\begin{lstlisting}[caption={MetaHDL FF syntax}]
 ff clk_a, clk_a_rst_n;
    a_ff, a, 1'b0;
    b_ff, b;
    c_ff, a_ff & b_ff, 1'b0;
 endff
-\end{mhdle}
+\end{lstlisting}
 \end{minipage}
 \hfill
 \begin{minipage}[t]{.48\textwidth}
-\begin{mhdle}[caption={Generated SystemVerilog}]
+\begin{lstlisting}[caption={Generated SystemVerilog}]
 always_ff @(posedge clk_a or negedge clk_a_rst_n)
   if (clk_a_rst_n)
     a_ff <= 1'b0;
@@ -78,7 +78,7 @@ always_ff @(posedge clk_a or negedge clk_a_rst_n)
      b_ff <= b;
      c_ff <= a_ff & b_ff;
   end
-\end{mhdle}
+\end{lstlisting}
 \end{minipage}
 
 \section{FSM}
@@ -103,7 +103,7 @@ current state register and next state next state register,
 respectively. clock and reset signal names are used in sequential block of
 FSM, which resets state register and perform current state
 refreshing. clock and reset names can be omitted together, and default
-name \mhdl{clock} and \mhdl{reset\_n} will be used. State transition is explicitly
+name \mhdl{clk} and \mhdl{rst\_n} will be used. State transition is explicitly
 stated by \mhdl{goto} keyword, instead of next state assignment.
 
 Symbol based FSM programming allows designers to code FSM using
@@ -117,9 +117,9 @@ confirmation. \autoref{lst:fsm in mhdl} is \gls{mhdl} FSM description,
 \autoref{lst:fsm in sv} is the corresponding \gls{sv} description, including
 constant definition. 
 
-\begin{figure}[pbt]
+\begin{figure}[p]
 \begin{minipage}[t]{.48\textwidth}
-\begin{mhdle}[caption={FSM in MetaHDL}, label={lst:fsm in mhdl}]
+\begin{lstlisting}[caption={FSM in MetaHDL}, label={lst:fsm in mhdl}]
 fsm cmdrx, clk, rst_n;
   cm_pim_ack = 1'b0;
   
@@ -145,11 +145,11 @@ fsm cmdrx, clk, rst_n;
   end
 
 endfsm
-\end{mhdle}
+\end{lstlisting}
 \end{minipage}
 \hfill
 \begin{minipage}[t]{.48\textwidth}
-\begin{mhdle}[caption={Generated FSM in SystemVerilog}, label={lst:fsm in sv}]
+\begin{lstlisting}[caption={Generated FSM in SystemVerilog}, label={lst:fsm in sv}]
 // other declarations...
 const logic [1:0] DATA = 2'b10;
 const logic [1:0] IDLE = 2'b01;
@@ -195,7 +195,7 @@ always_comb begin
     end
   endcase
 end
-\end{mhdle}
+\end{lstlisting}
 \end{minipage}
 \end{figure}
 
@@ -219,15 +219,15 @@ concatenate with module name.
 \item Prefix and/or Suffix rule is allowed in port connection (see example below). 
 \item Regular expression rule is allowed in port connection (see example below).
 \end{enumerate}
-\begin{figure}[ptb]
+\begin{figure}[p]
   \begin{minipage}[t]{.48\textwidth}
-    \begin{mhdle}[caption={\texttt{moda.mhdl}}]
+    \begin{lstlisting}[caption={\texttt{moda.mhdl}}]
 input i1;
 input i2;
 output o1;
 output [1:0] o2;
-    \end{mhdle}
-    \begin{mhdle}[caption={Instantiation in MetaHDL}]
+    \end{lstlisting}
+    \begin{lstlisting}[caption={Instantiation in MetaHDL}]
 // simplest instantiation
 moda;
 
@@ -243,11 +243,11 @@ moda x2_moda ( x2_ + , /*\label{ln:inst 2}*/
 // Perl compatible regexp
 moda x3_moda ( "s/o/out/g", 
                "s/i/in/g" );
-    \end{mhdle}
+    \end{lstlisting}
   \end{minipage}
   \hfill
   \begin{minipage}[t]{.48\textwidth}
-    \begin{mhdle}[caption={Generated SystemVerilog}]
+    \begin{lstlisting}[caption={Generated SystemVerilog}]
 moda x_moda (
                 .i1 (i1),
                 .i2 (i2),
@@ -275,7 +275,7 @@ moda x3_moda (
                  .o1 (out1),
                  .o2 (out2)
              );
-    \end{mhdle}
+    \end{lstlisting}
   \end{minipage}
 \end{figure}
 
@@ -293,16 +293,16 @@ in port connections and automatically parameterize wrapper module.
 \autoref{lst:modc in mhdl}, \autoref{lst:modc in sv}, \autoref{lst:wrapper in mhdl} and 
 \autoref{lst:wrapper in sv} demonstrate a example parameter tracing.
 
-\begin{figure}[ptb]
+\begin{figure}[p]
   \begin{minipage}[t]{.48\textwidth}
-    \begin{mhdle}[caption={Inner module: \texttt{modc} in \gls{mhdl}}, label={lst:modc in mhdl}]
+    \begin{lstlisting}[caption={Inner module: \texttt{modc} in \gls{mhdl}}, label={lst:modc in mhdl}]
 parameter A = 4;
 parameter B = 5; 
 parameter C = A + B;
 
 assign o1[C-1:0] = {~i1[A-1:0], i2[B-1:0]};
-    \end{mhdle}
-    \begin{mhdle}[caption={Generated \texttt{modc} in SystemVerilog}, label={lst:modc in sv}]
+    \end{lstlisting}
+    \begin{lstlisting}[caption={Generated \texttt{modc} in SystemVerilog}, label={lst:modc in sv}]
 module modc (
   i1, 
   i2, 
@@ -322,8 +322,8 @@ logic [C - 1:0] o1;
 
 assign o1[C - 1:0] = {~i1[A - 1:0], i2[B - 1:0]};
 endmodule
-    \end{mhdle}
-    \begin{mhdle}[caption={Wrapper Module in MetaHDL}, label={lst:wrapper in mhdl}]
+    \end{lstlisting}
+    \begin{lstlisting}[caption={Wrapper Module in MetaHDL}, label={lst:wrapper in mhdl}]
 parameter SETA = 8,
           SETB = 9;
 
@@ -334,11 +334,11 @@ modc #( SETA, SETB ) x1_modc ( x1_ + );
 
 modc #( .A(SETA) ) x2_modc (x2_ +,
                            .o1 (x2_o1[10:0]));
-    \end{mhdle}
+    \end{lstlisting}
   \end{minipage}
   \hfill
   \begin{minipage}[t]{.48\textwidth}
-    \begin{mhdle}[caption={Generated wrapper module in SystemVerilog}, label={lst:wrapper in sv}]
+    \begin{lstlisting}[caption={Generated wrapper module in SystemVerilog}, label={lst:wrapper in sv}]
 module modwrapper (
   x0_i1, 
   x0_i2, 
@@ -404,7 +404,7 @@ modc #(
                 );
 
 endmodule
-    \end{mhdle}
+    \end{lstlisting}
   \end{minipage}
 \end{figure}
 

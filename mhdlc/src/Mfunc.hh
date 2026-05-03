@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <sys/wait.h>
 
 #include <typeinfo>
 #include <vector>

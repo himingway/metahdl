@@ -671,5 +671,164 @@ public:
 };
 
 
+class CBlkGenerate : public CCodeBlock
+{
+private:
+  vector<CCodeBlock*> *_blocks;
+
+public:
+  inline CBlkGenerate(const yy::location &loc, vector<CCodeBlock*> *blocks) :
+    CCodeBlock(loc), _blocks (blocks) {}
+
+  inline void Print(ostream&os=cout) {
+    PrintLoc(os);
+    os << "generate" << endl;
+    for (vector<CCodeBlock*>::iterator iter = _blocks->begin();
+         iter != _blocks->end(); ++iter) {
+      (*iter)->Print(os);
+    }
+    os << "endgenerate" << endl;
+  }
+
+  inline void GetSymbol() {}
+};
+
+
+class CBlkGenBlock : public CCodeBlock
+{
+private:
+  vector<CCodeBlock*> *_blocks;
+
+public:
+  inline CBlkGenBlock(const yy::location &loc, vector<CCodeBlock*> *blocks) :
+    CCodeBlock(loc), _blocks (blocks) {}
+
+  inline void Print(ostream&os=cout) {
+    os << "begin" << endl;
+    for (vector<CCodeBlock*>::iterator iter = _blocks->begin();
+         iter != _blocks->end(); ++iter) {
+      (*iter)->Print(os);
+    }
+    os << "end" << endl;
+  }
+
+  inline void GetSymbol() {}
+};
+
+class CBlkGenNamed : public CCodeBlock
+{
+private:
+  string _name;
+  vector<CCodeBlock*> *_blocks;
+
+public:
+  inline CBlkGenNamed(const yy::location &loc, const string &name, vector<CCodeBlock*> *blocks) :
+    CCodeBlock(loc), _name (name), _blocks (blocks) {}
+
+  inline void Print(ostream&os=cout) {
+    os << "begin : " << _name << endl;
+    for (vector<CCodeBlock*>::iterator iter = _blocks->begin();
+         iter != _blocks->end(); ++iter) {
+      (*iter)->Print(os);
+    }
+    os << "end" << endl;
+  }
+
+  inline void GetSymbol() {}
+};
+
+class CBlkGenFor : public CCodeBlock
+{
+private:
+  CExpression *_init_var, *_init_val;
+  CExpression *_cond;
+  CExpression *_iter_var, *_iter_val;
+  CCodeBlock  *_body;
+
+public:
+  inline CBlkGenFor(const yy::location &loc,
+                    CExpression *init_var, CExpression *init_val,
+                    CExpression *cond,
+                    CExpression *iter_var, CExpression *iter_val,
+                    CCodeBlock *body) :
+    CCodeBlock(loc),
+    _init_var (init_var), _init_val (init_val),
+    _cond (cond),
+    _iter_var (iter_var), _iter_val (iter_val),
+    _body (body) {}
+
+  inline void Print(ostream&os=cout) {
+    os << "for (";
+    _init_var->Print(os); os << " = "; _init_val->Print(os);
+    os << "; "; _cond->Print(os);
+    os << "; "; _iter_var->Print(os); os << " = "; _iter_val->Print(os);
+    os << ") begin : gen_for" << endl;
+    _body->Print(os);
+    os << "end" << endl;
+  }
+
+  inline void GetSymbol() {}
+};
+
+class CBlkGenIf : public CCodeBlock
+{
+private:
+  CExpression *_cond;
+  CCodeBlock  *_then_block, *_else_block;
+
+public:
+  inline CBlkGenIf(const yy::location &loc, CExpression *cond,
+                   CCodeBlock *then_block, CCodeBlock *else_block = NULL) :
+    CCodeBlock(loc), _cond (cond),
+    _then_block (then_block), _else_block (else_block) {}
+
+  inline void Print(ostream&os=cout) {
+    os << "if ("; _cond->Print(os); os << ") begin : gen_if" << endl;
+    _then_block->Print(os);
+    os << "end" << endl;
+    if (_else_block) {
+      os << "else begin : gen_else" << endl;
+      _else_block->Print(os);
+      os << "end" << endl;
+    }
+  }
+
+  inline void GetSymbol() {}
+};
+
+class CBlkGenCase : public CCodeBlock
+{
+private:
+  CExpression *_expr;
+  vector<CCaseItem*> *_items;
+
+public:
+  inline CBlkGenCase(const yy::location &loc, CExpression *expr,
+                     vector<CCaseItem*> *items) :
+    CCodeBlock(loc), _expr (expr), _items (items) {}
+
+  inline void Print(ostream&os=cout) {
+    os << "case ("; _expr->Print(os); os << ")" << endl;
+    for (vector<CCaseItem*>::iterator iter = _items->begin();
+         iter != _items->end(); ++iter) {
+      (*iter)->Print(os, 2);
+    }
+    os << "endcase" << endl;
+  }
+
+  inline void GetSymbol() {}
+};
+
+inline void CCaseItem::Print(ostream &os, int indent) {
+  PUT_SPACE(indent);
+  for (vector<CExpression*>::iterator iter = _cond->begin();
+       iter != _cond->end(); ++iter) {
+    (*iter)->Print(os);
+    if ( iter != _cond->end()-1 ) os << ", ";
+  }
+  os << " : " << endl;
+  if (_blk) _blk->Print(os);
+  else _stmt->Print(os, indent+_step);
+}
 
 #endif

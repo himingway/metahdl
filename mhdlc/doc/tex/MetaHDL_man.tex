@@ -1,29 +1,53 @@
-\documentclass[10pt,oneside]{book}
+\documentclass[10pt,oneside]{elegantbook}
 
-\usepackage[MXTheme]{MXBookEN}
 %% ------------------------------
 %%   Document Properties
 %% ------------------------------
-\renewcommand{\DocTitle}{MetaHDL Reference Manual}
-\renewcommand{\DocDescription}{A user guide to syntax and compiler usage}
-\renewcommand{\DocAuthor}{xinmeng@hotmail.com}
-\renewcommand{\DocRevision}{2.0}
+\title{MetaHDL Reference Manual}
+\subtitle{A user guide to syntax and compiler usage}
+\author{xinmeng@hotmail.com}
+\version{2.0}
+\date{\today}
 
+\usepackage{mhdl}
+\usepackage{glossaries}
 \makeglossaries
-\usepackage{glossary-mhdl}
-%%\loadglsentries[main]{glossary-mhdl.sty}
 
+\newglossaryentry{mhdl}{name={MetaHDL}, description={A hardware description language and its compiler}}
+\newglossaryentry{mhdlc}{name={\texttt{mhdlc}}, description={The MetaHDL compiler}}
+\newglossaryentry{hdl}{name={Hardware Description Language}, description={A language for describing hardware circuits}}
+\newglossaryentry{rtl}{name={Register Transfer Level}, description={A level of abstraction in digital circuit design}}
+\newglossaryentry{sv}{name={SystemVerilog}, description={A hardware description and verification language}}
+\newglossaryentry{v}{name={Verilog}, description={A hardware description language}}
+\newglossaryentry{ff}{name={Flip-Flop}, description={A basic sequential logic element that stores one bit}}
+\newglossaryentry{fsm}{name={Finite State Machine}, description={A model of computation based on a finite number of states}}
+\newglossaryentry{cfg}{name={Context Free Grammar}, description={A formal grammar in which every production rule has a single nonterminal on its left side}}
+\newglossaryentry{code block}{name={code block}, description={A fundamental building block in MetaHDL: combinational, sequential, instantiation, or FSM}}
+\newglossaryentry{vperl}{name={VPerl}, description={A predecessor tool to MetaHDL}}
 
-%% ------------------------------
-%%   Document
-%% ------------------------------
+\usepackage{makeidx}
+\makeindex
+
 \begin{document}
-\input{MXCover.tex}
+\begin{titlepage}
+\thispagestyle{empty}
+\pagenumbering{Alph}
+\vspace*{\fill}
+\begin{center}
+{\Huge\bfseries MetaHDL Reference Manual\par}
+\vspace{1em}
+{\Large A user guide to syntax and compiler usage\par}
+\vspace{3em}
+{\large xinmeng@hotmail.com\par}
+\vspace{1em}
+{\large Version 2.0\par}
+\vspace{1em}
+{\large \today\par}
+\end{center}
+\vspace*{\fill}
+\end{titlepage}
 \frontmatter
 \tableofcontents
-%% \listoftables
-%% \listoffigures
-%% \lstlistoflistings
 \mainmatter
 \chapter{Introduction}\label{sec:intro}\input{intro.tex}
 \part{Language Reference}
@@ -33,7 +57,7 @@
 \chapter{User Control}\label{sec:user control}\input{user_ctrl.tex}
 
 \part{Compiler Usage}
-%% \chapter{Compilation Flow}\label{sec:flow}\input{flow.tex}
+\chapter{Compilation Flow}\label{sec:flow}\input{flow.tex}
 \chapter{Command Line Options}\label{sec:command line opt}\input{cmd_opt.tex}
 
 \part{Appendix}
@@ -43,14 +67,8 @@
 
 \chapter{For \vperl{} Designers}\label{sec:for vperl}\input{for_vperl.tex}
 
-\clearpage
-\refstepcounter{chapter}
-\addcontentsline{toc}{chapter}{Bibliography}  
-\label{sec:bib}\bibliography{library}
-\bibliographystyle{plainurl}
-
 \chapter{Formal Syntax}\label{sec:bnf}\input{formal_syntax.tex}
 \chapter{Change Log}\input{chg_log.tex}
 
-\refstepcounter{chapter}\printindex\addcontentsline{toc}{chapter}{Index} 
+\refstepcounter{chapter}\printindex\addcontentsline{toc}{chapter}{Index}
 \end{document}

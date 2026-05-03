@@ -1,0 +1,467 @@
+// ============================================================================
+// test_mh_basic.mh
+// Comprehensive MetaHDL Parser Input Test
+//
+// Grammar features tested (per mparser.y):
+//
+// PORT DECLARATIONS (lines 1230-1407):
+//   - force_port_declaration
+//   - port_declaration: simple, with range, 2D (lines 1241-1388)
+//   - port_direction: input, output, inout, nonport (line 1403)
+//
+// PARAMETER DECLARATIONS (lines 1410-1440):
+//   - parameter, localparam with assignments
+//
+// CONSTANT DECLARATIONS (lines 1444-1490):
+//   - const variable_type [range] name = expression ;
+//
+// VARIABLE DECLARATIONS (lines 1494-1669):
+//   - simple, with range, 2D (various orderings)
+//   - types: wire, reg, logic, int, integer
+//
+// EXPRESSIONS (lines 817-978):
+//   - binary ops: +, -, *, /, %, **, <<, >>
+//   - bitwise: |, &, ^
+//   - conditional: ||, &&, ==, !=, <, >, <=, >=
+//   - unary: ~, !, |, &, ^
+//   - ternary ? :
+//   - $clog2, function calls, concatenation, duplication
+//   - net indexing: [expr:expr], [expr], [expr][expr], [expr+ :expr], [expr- :expr]
+//
+// STATEMENTS (lines 1000-1175):
+//   - blocking (=), nonblocking (<=) assignment
+//   - begin/end, begin:ID/end
+//   - if/else (balanced, unbalanced)
+//   - case, casez, unique case, priority case
+//   - for statement
+//   - goto (in FSM)
+//   - optional delay #
+//   - empty statement ;
+//
+// CODE BLOCKS:
+//   - assign_block (line 1686)
+//   - combinational_block / always_comb (line 1752)
+//   - legacyff_block / always @(...) (line 1716)
+//   - ff_block (line 1765)
+//   - fsm_block (lines 1864-1951)
+//   - inst_block (lines 2114-2358)
+//   - generate_block (lines 2532-2650)
+//   - rawcode_block / function (lines 2658-2671)
+//   - metahdl_constrol (lines 2677-2780)
+// ============================================================================
+
+// ============================================================================
+// 1. metahdl control syntax (MVAR and EVAR)
+// ============================================================================
+metahdl + portchk;
+metahdl - exitonportchk;
+metahdl modname = test_module;
+metahdl clock = clk;
+metahdl reset = rst_n;
+metahdl - exitonwarning;
+
+// ============================================================================
+// 2. Port declarations
+// ============================================================================
+
+// Simple ports
+input clk;
+input rst_n;
+
+// Port with range
+input [31:0] data_in;
+output [31:0] data_out;
+
+// inout port
+inout [7:0] bidir_bus;
+
+// nonport (internal-only declaration)
+nonport internal_flag;
+
+// Multiple ports in one declaration
+input a, b, c;
+output [31:0] result;
+output [15:0] checksum;
+
+// Force port declarations (overrides any width inference)
+force input force_sig;
+force output [7:0] force_bus;
+
+// 2D port: direction [length_range] [width_range] names ;
+input [3:0] [15:0] packet_data;
+
+// ============================================================================
+// 3. Parameter declarations
+// ============================================================================
+parameter DATA_WIDTH = 32;
+parameter ADDR_WIDTH = 16, NUM_STAGES = 4;
+localparam MAX_VAL = 1024;
+localparam HALF_WIDTH = DATA_WIDTH / 2, FULL_WIDTH = DATA_WIDTH * 2;
+parameter RESET_VAL = 8'hFF;
+
+// ============================================================================
+// 4. Constant declarations
+// ============================================================================
+const wire ZERO = 0;
+const logic [7:0] ONES = 8'hFF;
+
+// ============================================================================
+// 5. Variable declarations
+// ============================================================================
+
+// Simple
+wire enable;
+reg state_reg;
+logic [15:0] comb_result;
+int counter;
+integer loop_idx;
+
+// With range
+wire [31:0] intermediate;
+reg [DATA_WIDTH-1:0] pipeline_reg;
+
+// 2D array: type [length_range] names [width_range] ;
+logic [7:0] fifo_data [15:0];
+
+// 2D array: type [width_range] [length_range] names ;
+wire [3:0] [7:0] matrix;
+
+// Multiple names
+wire w1, w2, w3;
+reg [3:0] r1, r2;
+
+// ============================================================================
+// 6. Expressions in assign blocks
+// ============================================================================
+
+// Binary arithmetic
+assign intermediate = data_in + DATA_WIDTH;
+assign intermediate = data_in - 1;
+assign intermediate = data_in * 2;
+assign intermediate = data_in / 4;
+assign intermediate = data_in % 8;
+assign intermediate = DATA_WIDTH ** 2;
+assign intermediate = data_in << 2;
+assign intermediate = data_in >> 2;
+
+// Bitwise
+assign intermediate = intermediate | 32'hFF00;
+assign intermediate = intermediate & 32'h00FF;
+assign intermediate = intermediate ^ 32'hAAAA;
+
+// Conditional / logical
+assign enable = (addr < MAX_VAL) && (!rst_n || rst_n);
+assign enable = (addr > 0) || (addr == 0);
+assign enable = (addr >= MAX_VAL) || (addr <= 0);
+assign enable = (addr != MAX_VAL);
+
+// Unary
+assign intermediate = ~intermediate;
+assign enable = !enable;
+assign intermediate = |data_in;
+assign intermediate = &data_in;
+assign intermediate = ^data_in;
+
+// Ternary
+assign data_out = (enable) ? data_in : 32'd0;
+
+// Parenthesized
+assign intermediate = (data_in + 1);
+
+// $clog2 function
+assign intermediate = {$clog2(DATA_WIDTH){1'b1}};
+
+// Concatenation
+assign data_out = {intermediate[15:0], intermediate[31:16]};
+
+// Duplication concatenation
+assign intermediate = {2{data_in[15:0]}};
+
+// Based numbers
+assign intermediate = 32'hDEADBEEF;
+assign intermediate = 8'b1010_0101;
+assign intermediate = 8'd255;
+
+// Net indexing: bit select
+assign enable = data_in[0];
+
+// Net indexing: part select
+assign comb_result = data_in[15:0];
+
+// Net indexing: indexed part-select (+) and (-)
+wire [15:0] upper_slice;
+wire [7:0] lower_slice;
+assign upper_slice = data_in[15 +: 16];
+assign lower_slice = data_in[7 - : 8];
+
+// ============================================================================
+// 7. Assign block (tests assign_block rule)
+// ============================================================================
+assign data_out = (counter > 0) ? pipeline_reg : 32'd0;
+
+// ============================================================================
+// 8. Combinational block (always_comb)
+// ============================================================================
+
+// Simple if/else
+always_comb begin
+    if (rst_n == 0) begin
+        comb_result = 16'd0;
+    end else if (enable) begin
+        comb_result = data_in[15:0];
+    end else begin
+        comb_result = 16'h0;
+    end
+end
+
+// Case statement
+always_comb begin
+    case (state_reg)
+        0: comb_result = data_in[15:0];
+        1: comb_result = data_in[15:0] + 1;
+        default: comb_result = 16'd0;
+    endcase
+end
+
+// casez
+always_comb begin
+    casez (state_reg)
+        4'b000?: comb_result = 16'h1;
+        4'b001?: comb_result = 16'h2;
+        default: comb_result = 16'd0;
+    endcase
+end
+
+// unique case
+always_comb begin
+    unique case (data_in[1:0])
+        2'b00: result = data_in;
+        2'b01: result = data_in << 1;
+        default: result = 32'b0;
+    endcase
+end
+
+// priority case
+always_comb begin
+    priority case (data_in[1:0])
+        2'b00: result = 32'd0;
+        2'b01: result = 32'd1;
+        default: result = 32'd2;
+    endcase
+end
+
+// unique casez
+always_comb begin
+    unique casez (state_reg)
+        4'b0???: result = 32'd0;
+        default: result = 32'd1;
+    endcase
+end
+
+// For loop inside combinational block
+always_comb begin
+    for (i = 0; i < 4; i = i + 1) begin
+        result[i*8 +: 8] = data_in[i*8 +: 8];
+    end
+end
+
+// Begin with label
+always_comb begin : labeled_block
+    comb_result = data_in[15:0] ^ 16'hFFFF;
+end
+
+// Unbalanced if
+always_comb begin
+    if (enable)
+        comb_result = data_in[15:0];
+end
+
+// ============================================================================
+// 9. Legacy FF block (always / always_ff)
+// ============================================================================
+
+// always @(posedge clk)
+always @(posedge clk) begin
+    pipeline_reg <= #1 data_in;
+end
+
+// always @(posedge clk or negedge rst_n)
+always @(posedge clk or negedge rst_n) begin
+    if (rst_n == 0)
+        pipeline_reg <= 32'd0;
+    else
+        pipeline_reg <= data_in;
+end
+
+// always_ff variant
+always_ff @(posedge clk) begin
+    counter <= counter + 1;
+end
+
+// ============================================================================
+// 10. FF block (MetaHDL ff)
+// ============================================================================
+
+// ff with explicit clock only
+ff clk;
+    pipeline_reg, data_in;
+endff
+
+// ff with explicit clock and reset
+ff clk, rst_n;
+    pipeline_reg, data_in, 32'd0;
+    counter, counter + 1, 32'd0;
+endff
+
+// ff with default clock and reset (uses metahdl clock/reset)
+ff;
+    state_reg, state_reg + 1, 4'd0;
+endff
+
+// NOTE: FF item only supports single net_lval, not concatenation LHS.
+// Use two separate FF items instead:
+ff clk;
+    result, data_in;
+endff
+
+// ============================================================================
+// 11. FSM block
+// ============================================================================
+
+// FSM with default clock/reset (requires default statement before states)
+fsm ctrl_fsm;
+    result = 32'd0;
+    IDLE: begin
+        if (enable) begin
+            goto COMPUTE;
+        end
+    end
+    COMPUTE: begin
+        result = data_in + pipeline_reg;
+        if (counter >= NUM_STAGES) begin
+            goto DONE;
+        end else begin
+            goto COMPUTE;
+        end
+    end
+    DONE: begin
+        data_out = comb_result * DATA_WIDTH;
+        goto IDLE;
+    end
+endfsm
+
+// FSM_nc (no clock/reset) with explicit clock and reset
+fsm_nc data_fsm, clk, rst_n;
+    data_out = 32'd0;
+    WAIT: begin
+        if (data_in > 0) begin
+            goto PROCESS;
+        end
+    end
+    PROCESS: begin
+        pipeline_reg = data_in ^ intermediate;
+        if (counter < DATA_WIDTH) begin
+            goto PROCESS;
+        end else begin
+            goto COMPLETE;
+        end
+    end
+    COMPLETE: begin
+        data_out = pipeline_reg;
+        goto WAIT;
+    end
+endfsm
+
+// ============================================================================
+// 12. Generate block
+// ============================================================================
+
+// Generate for
+generate
+    for (i = 0; i < 4; i = i + 1)
+        assign result[i*8 +: 8] = data_in[i*8 +: 8];
+endgenerate
+
+// Generate if/else with begin/end
+generate
+    if (DATA_WIDTH > 16) begin
+        assign data_out[31:16] = intermediate[31:16];
+        assign data_out[15:0] = data_in[15:0];
+    end else begin
+        assign data_out = data_in;
+    end
+endgenerate
+
+// Generate case
+generate
+    case (DATA_WIDTH)
+        8:
+            assign data_out = {24'd0, data_in[7:0]};
+        16:
+            assign data_out = {16'd0, data_in};
+        default:
+            assign data_out = data_in;
+    endcase
+endgenerate
+
+// Generate with named begin
+generate
+    begin : gen_block
+        assign data_out = data_in;
+    end
+endgenerate
+
+// ============================================================================
+// 13. Rawcode block (verbatim SystemVerilog output)
+// ============================================================================
+rawcode
+    // This is raw verilog code
+    assign internal_flag = 1'b0;
+endrawcode
+
+// Function block (also verbatim)
+function
+    [31:0] my_func;
+    input [31:0] a;
+    begin
+        my_func = a + 1;
+    end
+endfunction
+
+// ============================================================================
+// 14. Metahdl control syntax (additional)
+// ============================================================================
+metahdl + multidriverchk;
+metahdl - exitonwarning;
+metahdl clock = clk_125M;
+metahdl reset = pclk_rst_n;
+metahdl hierachydepth = 100;
+
+// ============================================================================
+// 15. Instance block (requires known module definition)
+// ============================================================================
+// Note: instance blocks trigger dependency parsing, so the instantiated
+// module must exist. These are commented out for standalone testing.
+// Uncomment when appropriate module files are available.
+//
+// // Named parameter override + named port connections
+// sub_module #(.W(DATA_WIDTH), .D(16)) x_sub (
+//     .din(data_in),
+//     .dout(data_out)
+// );
+//
+// // Positional parameter override
+// sub_module #(32, 16) x_sub2 (
+//     .din(intermediate)
+// );
+//
+// // Instance with auto-generated name
+// sub_module (
+//     .din(data_in[15:0])
+// );
+//
+// // Instance with unconnected port
+// sub_module x_sub3 (
+//     .din(data_in),
+//     .dout()
+// );

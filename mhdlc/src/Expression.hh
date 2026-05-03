@@ -3,7 +3,8 @@
 
 #include "Mfunc.hh"
 #include "CMacro.hh"
-#include "string.h"
+#include <cstring>
+#include <string>
 #include "ExpressionBase.hh"
 
 
@@ -198,6 +199,9 @@ public:
   bool width_fixed;
   bool is_2D;
   CExpression* length_msb;
+  bool is_unpacked;
+  CExpression* unpacked_msb;
+  CExpression* unpacked_lsb;
   bool is_const;
   bool is_local;
   CExpression* value;
@@ -215,18 +219,21 @@ public:
     name (name_), msb (CONST_NUM_0), lsb (CONST_NUM_0), direction (NONPORT), type (WIRE), 
     type_fixed (false), force_port (false), io_fixed (false), width_fixed (false),
     is_2D (false), length_msb (NULL),
+    is_unpacked (false), unpacked_msb (NULL), unpacked_lsb (NULL),
     is_const (false), is_local (false), value (NULL),  reference (NULL) {}
   
   inline CSymbol(const string &name_, CExpression* msb_) :
     name (name_), msb (msb_), lsb (CONST_NUM_0), direction (NONPORT), type (WIRE),
     type_fixed (false), force_port (false), io_fixed (false), width_fixed (false), 
     is_2D (false), length_msb (NULL),
+    is_unpacked (false), unpacked_msb (NULL), unpacked_lsb (NULL),
     is_const (false), is_local (false), value (NULL),  reference (NULL)  {}    
     
   inline CSymbol(const string &name_, CExpression* msb_, tType type_) :
     name (name_), msb (msb_), lsb (CONST_NUM_0), direction (NONPORT), type (type_),
     type_fixed (false), force_port (false), io_fixed (false), width_fixed (false), 
     is_2D (false), length_msb (NULL),
+    is_unpacked (false), unpacked_msb (NULL), unpacked_lsb (NULL),
     is_const (false), is_local (false), value (NULL),  reference (NULL)  {}    
 
 
@@ -234,6 +241,7 @@ public:
     name (name_), msb (msb_), lsb (CONST_NUM_0), direction (NONPORT), type (type_),
     type_fixed (false), force_port (false), io_fixed (false), width_fixed (false), 
     is_2D (true), length_msb (length_msb_),
+    is_unpacked (false), unpacked_msb (NULL), unpacked_lsb (NULL),
     is_const (false), is_local (false), value (NULL),  reference (NULL)  {}    
 
 
@@ -241,17 +249,26 @@ public:
     name (name_), msb (msb_), lsb (CONST_NUM_0), direction (direction_), type (WIRE),
     io_fixed (false), width_fixed (false), 
     is_2D (false), length_msb (NULL),
+    is_unpacked (false), unpacked_msb (NULL), unpacked_lsb (NULL),
     is_const (false), is_local (false), value (NULL),  reference (NULL)  {}    
 
   inline CSymbol(const string &name_, CExpression* msb_, tDirection direction_, CSymbol* reference_) :
     name (name_), msb (msb_), lsb (CONST_NUM_0), direction (direction_), type (WIRE),
-    type_fixed (false), force_port (false), io_fixed (false), width_fixed (false), 
+    type_fixed (false), force_port (false), io_fixed (false), width_fixed (false),
     is_const (false), is_local (false), value (NULL),  reference (reference_)  {
       is_2D = reference_->is_2D;
       if (reference_->is_2D)
           length_msb = reference_->length_msb;
-      else 
+      else
           length_msb = NULL;
+      is_unpacked = reference_->is_unpacked;
+      if (reference_->is_unpacked) {
+          unpacked_msb = reference_->unpacked_msb;
+          unpacked_lsb = reference_->unpacked_lsb;
+      } else {
+          unpacked_msb = NULL;
+          unpacked_lsb = NULL;
+      }
   }    
 
 
@@ -272,6 +289,7 @@ public:
       if (is_2D ) PrintWidth(os, length_msb, CONST_NUM_0);
       PrintWidth(os, msb, lsb);
       os << name;
+      if (is_unpacked) PrintWidth(os, unpacked_msb, unpacked_lsb);
       os << ";" << endl;
       
     }
@@ -317,8 +335,8 @@ public:
 	os.width(0);
 
 	os << name;
+	if (is_unpacked) PrintWidth(os, unpacked_msb, unpacked_lsb);
 
-	
 	os << ";" << endl;
       }
     }
@@ -351,6 +369,7 @@ public:
       os.width(0);
 
       os << name;
+      if (is_unpacked) PrintWidth(os, unpacked_msb, unpacked_lsb);
 
       // if (is_2D ) PrintWidth(os, length_msb, CONST_NUM_0, is_2D);
 
@@ -502,7 +521,7 @@ private:
 
 struct CCompareConnection 
 {
-  inline bool operator() (CSymbol* i, CSymbol* j) {
+  inline bool operator() (CSymbol* i, CSymbol* j) const {
     if ( strcmp(i->name.c_str(), j->name.c_str()) < 0 ) {
       return true;
     }

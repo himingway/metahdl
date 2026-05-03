@@ -253,6 +253,8 @@ public:
 };
 
 
+class CCodeBlock;
+
 class CCaseItem
 {
 private:
@@ -260,39 +262,39 @@ private:
 
   vector<CExpression*> *_cond;
   CStatement*  _stmt;
+  CCodeBlock*  _blk;
 
   inline CCaseItem() {}
 
 public:
-  inline CCaseItem(vector<CExpression*> *cond, CStatement *stmt) : 
-    _cond (cond), _stmt (stmt), _step (2) {}
+  inline CCaseItem(vector<CExpression*> *cond, CStatement *stmt) :
+    _cond (cond), _stmt (stmt), _step (2), _blk(NULL) {}
 
-  inline CCaseItem(vector<CExpression*> *cond, CStatement *stmt, int step) : 
-    _cond (cond), _stmt (stmt), _step (step) {}
+  inline CCaseItem(vector<CExpression*> *cond, CStatement *stmt, int step) :
+    _cond (cond), _stmt (stmt), _step (step), _blk(NULL) {}
 
-  inline CCaseItem(CExpression *cond, CStatement *stmt) : 
-    _stmt (stmt), _step (2) {
+  inline CCaseItem(CExpression *cond, CStatement *stmt) :
+    _stmt (stmt), _step (2), _blk(NULL) {
      _cond = new vector<CExpression*>;
      _cond->push_back(cond);
   }
 
-  inline CCaseItem(CExpression *cond, CStatement *stmt, int step) : 
-     _stmt (stmt), _step (step) {
+  inline CCaseItem(CExpression *cond, CStatement *stmt, int step) :
+     _stmt (stmt), _step (step), _blk(NULL) {
      _cond = new vector<CExpression*>;
      _cond->push_back(cond);
   }
 
+  inline CCaseItem(vector<CExpression*> *cond, CCodeBlock *blk) :
+    _cond (cond), _stmt (NULL), _step (2), _blk (blk) {}
 
-  inline void Print(ostream &os=cout, int indent=0) {
-    PUT_SPACE(indent);
-    for (vector<CExpression*>::iterator iter = _cond->begin(); 
-         iter != _cond->end(); ++iter) {
-      (*iter)->Print(os);
-      if ( iter != _cond->end()-1 ) os << ", ";
-    }
-    os << " : " << endl;
-    _stmt->Print(os, indent+_step); 
+  inline CCaseItem(CCodeBlock *blk) :
+    _cond (NULL), _stmt (NULL), _step (2), _blk (blk) {
+     _cond = new vector<CExpression*>;
   }
+
+
+  void Print(ostream &os=cout, int indent=0);
 
   inline void GetSymbol(set<CSymbol*> *lsymb, set<CSymbol*> *rsymb) {
 #if 0

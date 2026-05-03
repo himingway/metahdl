@@ -610,3 +610,64 @@ metahdl\_constrol $::=$\hspace{1ex} \textbf{\textcolor{red}{metahdl}} \textbf{\t
 \mbox{$|$ \textbf{\textcolor{red}{metahdl}} \textbf{\textcolor{red}{message}} verbtims \textbf{\textcolor{red}{;}}}
 
 \mbox{$|$ \textbf{\textcolor{red}{metahdl}} \textbf{\textcolor{red}{parse}} verbtims \textbf{\textcolor{red}{;}}}
+
+\vspace{1em}
+\noindent
+\settowidth{\parindent}{\hspace{4ex}}
+generate\_block $::=$\hspace{1ex} \textbf{\textcolor{red}{generate}} generate\_statements \textbf{\textcolor{red}{endgenerate}}
+
+\vspace{1em}
+\noindent
+\settowidth{\parindent}{\hspace{4ex}}
+generate\_statements $::=$\hspace{1ex} generate\_statement
+
+\mbox{$|$ generate\_statements generate\_statement}
+
+\vspace{1em}
+\noindent
+\settowidth{\parindent}{\hspace{4ex}}
+generate\_statement $::=$\hspace{1ex} generate\_balanced\_statement
+
+\mbox{$|$ generate\_unbalanced\_statement}
+
+\vspace{1em}
+\noindent
+\settowidth{\parindent}{\hspace{4ex}}
+generate\_balanced\_statement $::=$\hspace{1ex} assign\_block
+
+\mbox{$|$ combinational\_block}
+
+\mbox{$|$ ff\_block}
+
+\mbox{$|$ legacyff\_block}
+
+\mbox{$|$ inst\_block}
+
+\mbox{$|$ \textbf{\textcolor{red}{begin}} \textbf{\textcolor{red}{:}} \textbf{\textcolor{red}{ID}} generate\_statements \textbf{\textcolor{red}{end}}}
+
+\mbox{$|$ \textbf{\textcolor{red}{for}} \textbf{\textcolor{red}{(}} net\_lval \textbf{\textcolor{red}{=}} expression \textbf{\textcolor{red}{;}} expression \textbf{\textcolor{red}{;}} net\_lval \textbf{\textcolor{red}{=}} expression \textbf{\textcolor{red}{)}} generate\_statement}
+
+\mbox{$|$ \textbf{\textcolor{red}{if}} \textbf{\textcolor{red}{(}} expression \textbf{\textcolor{red}{)}} generate\_balanced\_statement \textbf{\textcolor{red}{else}} generate\_balanced\_statement}
+
+\mbox{$|$ \textbf{\textcolor{red}{case}} \textbf{\textcolor{red}{(}} expression \textbf{\textcolor{red}{)}} generate\_case\_items \textbf{\textcolor{red}{endcase}}}
+
+\vspace{1em}
+\noindent
+\settowidth{\parindent}{\hspace{4ex}}
+generate\_unbalanced\_statement $::=$\hspace{1ex} \textbf{\textcolor{red}{if}} \textbf{\textcolor{red}{(}} expression \textbf{\textcolor{red}{)}} generate\_statement
+
+\mbox{$|$ \textbf{\textcolor{red}{if}} \textbf{\textcolor{red}{(}} expression \textbf{\textcolor{red}{)}} generate\_balanced\_statement \textbf{\textcolor{red}{else}} generate\_unbalanced\_statement}
+
+\vspace{1em}
+\noindent
+\settowidth{\parindent}{\hspace{4ex}}
+generate\_case\_items $::=$\hspace{1ex} generate\_case\_item
+
+\mbox{$|$ generate\_case\_items generate\_case\_item}
+
+\vspace{1em}
+\noindent
+\settowidth{\parindent}{\hspace{4ex}}
+generate\_case\_item $::=$\hspace{1ex} expressions \textbf{\textcolor{red}{:}} generate\_statement
+
+\mbox{$|$ \textbf{\textcolor{red}{default}} \textbf{\textcolor{red}{:}} generate\_statement}

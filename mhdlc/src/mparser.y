@@ -56,6 +56,8 @@ extern string WORKDIR;
   vector<pair<string, CExpression*> >  *param_rule_ptr;
   CCaseType *case_type_ptr;
   vector<CSymbol*> *port_declaration;
+  vector<CCodeBlock*> *blk_vct_ptr;
+  vector<CCaseItem*>  *gen_case_item_vct_ptr;
 }
 
 
@@ -391,7 +393,7 @@ extern string WORKDIR;
 %type <case_item_ptr> case_item
 %type <port_type> port_direction
 %type <var_type> variable_type
-%type <blk_ptr> assign_block combinational_block ff_block inst_block legacyff_block
+%type <blk_ptr> assign_block combinational_block ff_block inst_block legacyff_block generate_block generate_statement generate_balanced_statement generate_unbalanced_statement
 %type <ff_item_ptr> ff_item
 %type <ff_item_vct> ff_items
 %type <state_item_ptr> fsm_item
@@ -401,6 +403,9 @@ extern string WORKDIR;
 %type <param_rule_ptr> parameter_rule
 %type <port_declaration> port_declaration
 %type <expression_ptr> optional_delay
+%type <blk_vct_ptr> generate_statements
+%type <gen_case_item_vct_ptr> generate_case_items
+%type <case_item_ptr> generate_case_item
 
 
 %right "?" ":"
@@ -438,7 +443,7 @@ start: {mwrapper.module_location = @$;}
 | start inst_block {mwrapper.module_location = @$; mwrapper.code_blocks->push_back($2);}
 | start rawcode_block {mwrapper.module_location = @$; mwrapper.code_blocks->push_back($2);}
 | start metahdl_constrol {mwrapper.module_location = @$;}
-| start generate_block {mwrapper.module_location = @$; /* mwrapper.code_blocks->push_back($2);*/}
+| start generate_block {mwrapper.module_location = @$; mwrapper.code_blocks->push_back($2);}
 ;
 
 /* body: port_declaration  */
@@ -1008,7 +1013,7 @@ balanced_stmt : ";"
 {
    $$ = new CStmtSimple ();
    if (DebugMHDLParser) 
-     mwrapper.warning(@$, "Why do you write empty statment? You stupid asshole think it's funny?? I'll tell you, it's totally SHIT!!");
+     mwrapper.warning(@$, "empty statement.");
 }
 
 //  1    2     3      4      5       6       7      8     9      10     11     12     13
@@ -1033,7 +1038,7 @@ balanced_stmt : ";"
 | "begin" "end" 
 {
    $$ = new CStmtSimple ();
-   mwrapper.warning(@$, "Why do you write empty statment? You stupid asshole think it's funny?? I'll tell you, it's totally SHIT!!");
+   mwrapper.warning(@$, "empty statement.");
 }
 
 | net_lval "<=" optional_delay expression ";" 
@@ -1048,7 +1053,7 @@ balanced_stmt : ";"
     mwrapper.error(@$, "Nonblocking assignment is NOT allowed in combnational block.");
   }
 
-  if ( $1->Width() < $4->Width() ) {
+  if ( $1->Width() != $4->Width() ) {
       ostringstream msg;
       msg << "Width mismatch in non-blocking assignment, \"";
       $1->Print(msg);
@@ -1072,7 +1077,7 @@ balanced_stmt : ";"
     mwrapper.error(@$, "Blocking assignment is NOT allowed in sequential block.");
   }
 
-  if ( $1->Width() < $3->Width() ) {
+  if ( $1->Width() != $3->Width() ) {
       ostringstream msg;
       msg << "Width mismatch in blocking assignment, ";
       $1->Print(msg);
@@ -1681,7 +1686,7 @@ variable_type : "wire" {$$ = WIRE;}
 ******************************/ 
 assign_block : "assign" net_lval "=" expression ";" 
 {
-  if ( $2->Width() < $4->Width() ) {
+  if ( $2->Width() != $4->Width() ) {
       ostringstream msg;
       msg << "Width mismatch in assign statement, \"";
       $2->Print(msg);
@@ -1817,7 +1822,7 @@ ff_items : ff_item
 }
 ;
 
-ff_item : net_lval "," expression "," expression ";" 
+ff_item : net_lval "," expression "," expression ";"
 {
   if ( $1->Width() != $3->Width() ) {
     mwrapper.warning(@$, "Width mismatch between FF src and dst.");
@@ -2527,79 +2532,127 @@ connection_rule : "." net_name "(" expression ")"
  *******************************/
 generate_block : "generate" generate_statements "endgenerate"
 {
-    cout << "Generate block: "  << endl;
+    $$ = new CBlkGenerate (@$, $2);
 }
 ;
 
 generate_statements : generate_statement
 {
-    cout << "single statement" << endl;
+    $$ = new vector<CCodeBlock*>;
+    $$->push_back($1);
 }
 
 | generate_statements generate_statement
 {
-    cout << "multiple statement " << endl;
+    $1->push_back($2);
+    $$ = $1;
 }
 ;
 
 
 generate_statement : generate_balanced_statement
 {
+    $$ = $1;
 }
 
 | generate_unbalanced_statement
-{}
+{
+    $$ = $1;
+}
 
 ;
 
-generate_balanced_statement : assign_block 
-{}
+generate_balanced_statement : assign_block
+{
+    $$ = $1;
+}
 
-| combinational_block 
-{}
+| combinational_block
+{
+    $$ = $1;
+}
 
-| ff_block 
-{}
+| ff_block
+{
+    $$ = $1;
+}
 
-| legacyff_block 
-{}
+| legacyff_block
+{
+    $$ = $1;
+}
 
-| inst_block 
-{} 
+| inst_block
+{
+    $$ = $1;
+}
 
 | "begin" ":" ID generate_statements "end"
-{}
+{
+    $$ = new CBlkGenNamed (@$, *$3, $4);
+}
+
+| "begin" generate_statements "end"
+{
+    $$ = new CBlkGenBlock (@$, $2);
+}
 
 | "for" "(" net_lval "=" expression ";" expression ";" net_lval "=" expression ")" generate_statement
-{}
+{
+    $$ = new CBlkGenFor (@$, $3, $5, $7, $9, $11, $13);
+}
 
 | "if" "(" expression ")" generate_balanced_statement "else" generate_balanced_statement
-{}
+{
+    $$ = new CBlkGenIf (@$, $3, $5, $7);
+}
 
-| "case" "(" expression ")" generate_case_items "endcase" 
-{}
+| "case" "(" expression ")" generate_case_items "endcase"
+{
+    $$ = new CBlkGenCase (@$, $3, $5);
+}
 
 ;
 
 generate_unbalanced_statement : "if" "(" expression ")" generate_statement
-{}
+{
+    $$ = new CBlkGenIf (@$, $3, $5);
+}
 
 | "if" "(" expression ")" generate_balanced_statement "else" generate_unbalanced_statement
-{}
-; 
+{
+    $$ = new CBlkGenIf (@$, $3, $5, $7);
+}
+;
 
 generate_case_items : generate_case_item
-{} 
+{
+    $$ = new vector<CCaseItem*>;
+    $$->push_back($1);
+}
 
 | generate_case_items generate_case_item
-{}
-; 
+{
+    $1->push_back($2);
+    $$ = $1;
+}
+;
 
 generate_case_item : expressions ":" generate_statement
-{}
+{
+    for (vector<CExpression*>::iterator iter = $1->begin();
+         iter != $1->end(); ++iter) {
+      (*iter)->Update(INPUT);
+      (*iter)->AddRoccure(@1);
+    }
+    $$ = new CCaseItem ($1, $3);
+}
 
 | "default" ":" generate_statement
-{}
+{
+    vector<CExpression*> *exps = new vector<CExpression*>;
+    $$ = new CCaseItem (exps, $3);
+}
 ;
 
 
@@ -2671,38 +2724,63 @@ metahdl_constrol : "metahdl" ID ";"
 
 | "metahdl" "parse" verbtims ";"
 {
-  string cmd_line = COMMAND;
+  vector<string> args_vec;
+  args_vec.push_back(COMMAND);
   if ( LEGACY_VERILOG_MODE )
-    cmd_line = cmd_line + " -verilog ";
+    args_vec.push_back("-verilog");
 
-  if (FORCE_WIDTH_OUTPUT) 
-    cmd_line = cmd_line + " --force-width-output";
+  if (FORCE_WIDTH_OUTPUT)
+    args_vec.push_back("--force-width-output");
 
   switch (CASE_MODIFY_STYLE)
     {
     case PROPAGATE:
-      cmd_line = cmd_line + " --propagate-case-modifier";
+      args_vec.push_back("--propagate-case-modifier");
       break;
-  
+
     case MACRO:
-      cmd_line = cmd_line + " --macro-case-modifier";
+      args_vec.push_back("--macro-case-modifier");
       break;
 
     case ELIMINATE:
-      cmd_line = cmd_line + " --eliminate-case-modifier";
+      args_vec.push_back("--eliminate-case-modifier");
       break;
     }
 
-  for (list<string>::iterator iter = PATHS.begin(); 
-       iter!=PATHS.end(); ++iter)
-    cmd_line = cmd_line + " -I " + *iter ;
+  for (list<string>::iterator iter = PATHS.begin();
+       iter!=PATHS.end(); ++iter) {
+    args_vec.push_back("-I");
+    args_vec.push_back(*iter);
+  }
 
-  cmd_line = cmd_line + " -o " + V_BASE + *$3 ;
+  args_vec.push_back("-o");
+  args_vec.push_back(V_BASE);
+  args_vec.push_back(*$3);
 
+  vector<char*> argv_vec;
+  for (size_t i = 0; i < args_vec.size(); ++i)
+    argv_vec.push_back(const_cast<char*>(args_vec[i].c_str()));
+  argv_vec.push_back(NULL);
 
-  cerr << endl << "\tParsing on demand: " << cmd_line << endl << endl;
+  cerr << endl << "\tParsing on demand: ";
+  for (size_t i = 0; i < args_vec.size(); ++i)
+    cerr << args_vec[i] << " ";
+  cerr << endl << endl;
 
-  if ( system(cmd_line.c_str()) ) mwrapper.error(@$, "Parsing on demand failed.");
+  pid_t pid = fork();
+  if (pid == -1) {
+    mwrapper.error(@$, "fork() failed for parsing on demand.");
+  }
+  else if (pid == 0) {
+    execvp(argv_vec[0], &argv_vec[0]);
+    _exit(127);
+  }
+  else {
+    int status;
+    waitpid(pid, &status, 0);
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
+      mwrapper.error(@$, "Parsing on demand failed.");
+  }
 
 }
 ;

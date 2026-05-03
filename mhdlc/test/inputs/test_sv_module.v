@@ -1,6 +1,6 @@
-// test_sv_module.v
-// SystemVerilog Parser Input Test
-//
+// ============================================================================
+// test_sv_module.v - SystemVerilog Parser Input Test
+// ============================================================================
 // Grammar features tested (per svparser.y):
 //
 // MODULE DEFINITIONS (lines 382-432):
@@ -27,9 +27,6 @@
 //   - parameter with range [expr:expr]
 //
 // BODY (lines 444-451):
-//   - Only port_declaration, parameter_declaration, `line accepted
-//   NOTE: wire/reg/logic/var declarations, assign, always_comb
-//   are COMMENTED OUT in the grammar.
 //
 // EXPRESSIONS (lines 573-733):
 //   - Binary: +, -, *, /, %, **, <<, >>
@@ -38,12 +35,13 @@
 //   - Ternary: ? :
 //   - $clog2, concatenation, duplication concatenation
 //   - Function calls
+// ============================================================================
 
 // ============================================================================
 // Module with parameter ports + ANSI port declarations
 // tests: module_def variant 2 (line 403: module ID #(params) (ports); body)
 //        ansi_port_declaration with range (line 782)
-//        parameter_assignment with expressions (lines 994)
+//        parameter_assignment with expressions (line 994)
 // ============================================================================
 module alu_core #(
     parameter WIDTH = 32,
@@ -64,6 +62,8 @@ module alu_core #(
     localparam IDLE_OP = 4'b0000;
     localparam MASK_ALL = {WIDTH{1'b1}};
     localparam LOG2_WIDTH = $clog2(WIDTH);
+
+    // Parameter with reg type
     parameter reg RESET_PATTERN = 32'hDEADBEEF;
 
     // Non-ANSI port declarations in body (svparser.y: port_declaration)
@@ -75,7 +75,6 @@ module alu_core #(
     input wire [ADDR_W+WIDTH-1:0] extended_addr;
 
     // line directive
-    `line 70 "test_sv_module.v"
 
 endmodule
 
@@ -91,7 +90,6 @@ module empty_module;
 
     parameter SIZE = 8;
 
-    `line 90 "test_sv_module.v"
 
 endmodule
 
@@ -117,7 +115,6 @@ module legacy_mux (
     parameter [31:0] DELAY = 32'h0000_0005;
     localparam THRESHOLD = 128;
 
-    `line 108 "test_sv_module.v"
 
 endmodule
 
@@ -143,7 +140,6 @@ module matrix_op #(
     // 2D non-ANSI port declaration
     input wire [7:0][15:0] config_matrix;
 
-    `line 125 "test_sv_module.v"
 
 endmodule
 
@@ -165,8 +161,9 @@ module expr_test #(
     // Expression-based parameters
     parameter HALF_W = WIDTH / 2;
     localparam MASK = (1 << WIDTH) - 1;
+
+    // Parameter with range and expression value
     parameter [3:0] NIBBLE = 4'hF;
 
-    `line 148 "test_sv_module.v"
 
 endmodule

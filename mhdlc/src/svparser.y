@@ -842,6 +842,65 @@ ansi_port_declaration : port_direction var_type_opt net_name
       svwrapper.io_table->Insert(symb);
   }
 }
+| port_direction var_type_opt "[" expression ":" expression "]" net_name "[" expression ":" expression "]"
+  // 1           2            3   4          5   6          7   8       9   10         11  12         13
+{
+  if ( !$6->IsConst() ) {
+    svwrapper.error(@6, "non-constant LSB in port declaration.");
+  }
+  if ( $6->Value() != 0 ) {
+    svwrapper.warning(@6, "non-zero LSB can only confuse others, nothing more!");
+  }
+  if ( ! $4->IsConst() ) {
+     svwrapper.error(@4, "non-constant MSB in port declaration.");
+  }
+  if ( !$12->IsConst() ) {
+     svwrapper.error(@12, "non-constant MSB in unpacked dimension.");
+  }
+
+  CSymbol* symb = svwrapper.symbol_table->Insert( (*$8) );
+  symb->io_fixed      = true;
+  symb->direction     = $1;
+  symb->width_fixed   = true;
+  symb->msb           = $4;
+  symb->lsb           = $6;
+  symb->is_unpacked   = true;
+  symb->unpacked_msb  = $10;
+  symb->unpacked_lsb  = $12;
+
+  if ( svwrapper.io_table->Exist((*$8)) ) {
+      svwrapper.error(@$, "port " + (*$8) + " has already been declared." );
+  }
+  else {
+      svwrapper.io_table->Insert(symb);
+  }
+}
+| port_direction var_type_opt net_name "[" expression ":" expression "]"
+  // 1           2            3       4   5          6   7          8
+{
+  if ( !$7->IsConst() ) {
+    svwrapper.error(@7, "non-constant LSB in unpacked dimension.");
+  }
+  if ( ! $5->IsConst() ) {
+     svwrapper.error(@5, "non-constant MSB in unpacked dimension.");
+  }
+
+  CSymbol* symb = svwrapper.symbol_table->Insert( (*$3) );
+  symb->io_fixed      = true;
+  symb->direction     = $1;
+  symb->width_fixed   = true;
+  symb->msb           = CONST_NUM_0;
+  symb->is_unpacked   = true;
+  symb->unpacked_msb  = $5;
+  symb->unpacked_lsb  = $7;
+
+  if ( svwrapper.io_table->Exist((*$3)) ) {
+      svwrapper.error(@$, "port " + (*$3) + " has already been declared." );
+  }
+  else {
+      svwrapper.io_table->Insert(symb);
+  }
+}
 ;
 
 var_type_opt : 
@@ -946,6 +1005,71 @@ port_declaration: port_direction var_type_opt net_names ";"
            svwrapper.io_table->Insert(symb);
        }
    }
+}
+| port_direction var_type_opt "[" expression ":" expression "]" net_names "[" expression ":" expression "]" ";"
+  // 1           2            3   4          5   6          7   8        9   10         11  12         13  14
+{
+  if ( !$6->IsConst() ) {
+    svwrapper.error(@6, "non-constant LSB in port declaration.");
+  }
+  if ( $6->Value() != 0 ) {
+    svwrapper.warning(@6, "non-zero LSB can only confuse others, nothing more!");
+  }
+  if ( ! $4->IsConst() ) {
+    svwrapper.error(@4, "non-constant MSB in port declaration.");
+  }
+  if ( !$12->IsConst() ) {
+    svwrapper.error(@12, "non-constant MSB in unpacked dimension.");
+  }
+
+  for ( vector<string>::iterator iter = $8->begin();
+        iter != $8->end(); ++iter) {
+      CSymbol* symb = svwrapper.symbol_table->Insert( (*iter) );
+      symb->io_fixed      = true;
+      symb->direction     = $1;
+      symb->width_fixed   = true;
+      symb->msb           = $4;
+      symb->lsb           = $6;
+      symb->is_unpacked   = true;
+      symb->unpacked_msb  = $10;
+      symb->unpacked_lsb  = $12;
+
+      if ( svwrapper.io_table->Exist((*iter)) ) {
+          svwrapper.error(@$, "port " + (*iter) + " has already been declared." );
+      }
+      else {
+          svwrapper.io_table->Insert(symb);
+      }
+  }
+}
+| port_direction var_type_opt net_names "[" expression ":" expression "]" ";"
+  // 1           2            3        4   5          6   7          8   9
+{
+  if ( !$7->IsConst() ) {
+    svwrapper.error(@7, "non-constant LSB in unpacked dimension.");
+  }
+  if ( ! $5->IsConst() ) {
+    svwrapper.error(@5, "non-constant MSB in unpacked dimension.");
+  }
+
+  for ( vector<string>::iterator iter = $3->begin();
+        iter != $3->end(); ++iter) {
+      CSymbol* symb = svwrapper.symbol_table->Insert( (*iter) );
+      symb->io_fixed      = true;
+      symb->direction     = $1;
+      symb->width_fixed   = true;
+      symb->msb           = CONST_NUM_0;
+      symb->is_unpacked   = true;
+      symb->unpacked_msb  = $5;
+      symb->unpacked_lsb  = $7;
+
+      if ( svwrapper.io_table->Exist((*iter)) ) {
+          svwrapper.error(@$, "port " + (*iter) + " has already been declared." );
+      }
+      else {
+          svwrapper.io_table->Insert(symb);
+      }
+  }
 }
 ; 
 

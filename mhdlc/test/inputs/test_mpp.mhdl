@@ -1,0 +1,173 @@
+// ============================================================================
+// test_mpp.mhdl - MetaHDL Preprocessor Test
+// ============================================================================
+// This file tests the full VPP + MPP preprocessor pipeline used by MHDL files.
+// VPP runs first, then MPP. Only features that survive VPP can be tested here.
+//
+// VPP-supported directives (vpp.y):
+//   - `ifdef, `ifndef, `if, `else, `endif
+//   - `let, `for, `while, `switch, `case, `default, `breaksw
+//   - `endswitch, `endfor, `endwhile
+//
+// MPP-only directives (mpp.y) that bypass VPP:
+//   - `define, `foreach, `elsif
+//   - Arithmetic functions: `log2, `floor, `ceil, `abs, `even, `odd
+//   - `hex, `dec, `bin, `max, `min
+// These CANNOT be tested in a .mhdl file because VPP runs first.
+// ============================================================================
+
+// ============================================================================
+// 1. `ifdef / `ifndef / `else / `endif
+// ============================================================================
+`ifdef DEBUG
+parameter SIM_LEVEL = 5;
+`endif
+
+`ifndef RELEASE
+parameter DEBUG_FLAG = 1;
+`else
+parameter RELEASE_FLAG = 1;
+`endif
+
+// ============================================================================
+// 2. `if conditionals (VPP expression form)
+// ============================================================================
+`if 32 > 16
+parameter WIDE_BUS = 1;
+`else
+parameter WIDE_BUS = 0;
+`endif
+
+// ============================================================================
+// 3. `let assignments
+// ============================================================================
+`let counter = 0
+`let threshold = 128
+`let half_width = 32 / 2
+
+// ============================================================================
+// 4. `for loop (VPP form: id = expr ; expr ; id = expr)
+// ============================================================================
+`for (i = 0; i < 8; i = i + 1)
+wire bit_`i;
+`endfor
+
+// ============================================================================
+// 5. `while loop
+// ============================================================================
+`let j = 0
+`while (j < 4)
+wire loop_`j;
+`let j = j + 1
+`endwhile
+
+// ============================================================================
+// 6. `switch / `case / `endswitch
+// ============================================================================
+`switch half_width
+`case 8
+wire byte_bus;
+`case 16
+wire word_bus;
+`default
+wire generic_bus;
+`endswitch
+
+// ============================================================================
+// 7. `breaksw
+// ============================================================================
+`switch half_width
+`case 8
+wire short_bus;
+`breaksw
+`case 16
+wire wide_bus;
+`breaksw
+`endswitch
+
+// ============================================================================
+// 8. Expressions in `if and `let
+// ============================================================================
+
+// Binary: +, -, *, /, %
+`let sum_val = 10 + 20
+`let diff_val = 100 - 50
+`let prod_val = 8 * 4
+`let div_val = 64 / 8
+`let mod_val = 17 % 5
+
+// Shift: <<, >>
+`let shift_l = 1 << 4
+`let shift_r = 256 >> 4
+
+// Power: **
+`let power_val = 2 ** 8
+
+// Logical: &&, || (only available in MPP state, not VPP `if)
+// VPP `if only supports simple comparison expressions
+
+// Simple comparison
+`if 5 > 3
+parameter GT_OK = 1;
+`endif
+
+// Comparison: ==, !=, <, <=, >, >=
+`if 42 == 42
+parameter EQ_OK = 1;
+`endif
+
+`if 0 != 1
+parameter NE_OK = 1;
+`endif
+
+// Bitwise: &, |, ^
+`let bw_and = 255 & 15
+`let bw_or = 240 | 15
+`let bw_xor = 170 ^ 85
+
+// Unary: ~, ! (VPP supports these)
+`let u_not = ~255
+`let u_lnot = !(0)
+`let u_and = &15
+`let u_or = &15
+`let u_xor = ^15
+
+// NOTE: ~&, ~|, ~^ (NAND/NOR/XNOR) not supported in VPP expressions.
+// NOTE: Ternary ? : not supported in VPP `let.
+// NOTE: Hex literals in `let can confuse the MHDL parser after VPP.
+
+// Parenthesized
+`let grouped = ((1 + 2) * 3) - 4
+
+// Built-in functions (VPP)
+`let log2_val = LOG2(256)
+`let round_val = ROUND(3.7)
+`let ceil_val = CEIL(4.1)
+`let floor_val = FLOOR(4.9)
+`let abs_val = ABS(-99)
+`let even_val = EVEN(8)
+`let odd_val = ODD(7)
+`let max_val = MAX(42, 100)
+`let min_val = MIN(42, 100)
+
+// NOTE: STOI, ITOS, SUBSTR, SYSTEM are in grammar but not fully implemented.
+
+// Primary types
+`let filename = "test.txt"
+`let pi = 3.14159
+`let plain = 42
+
+// NOTE: Post-increment/decrement (counter++) is VPP-internal;
+// VPP expands it but the ++ token can confuse MHDL parser.
+
+// ============================================================================
+// 9. MHDL body after preprocessor
+// ============================================================================
+input clk;
+input rst_n;
+input [31:0] data_in;
+output [31:0] data_out;
+
+wire enable;
+
+assign enable = rst_n;

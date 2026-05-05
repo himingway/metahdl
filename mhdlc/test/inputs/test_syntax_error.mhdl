@@ -1,0 +1,6 @@
+// Negative test: syntax error — unclosed module, missing semicolons
+// Expected: compiler should report error and exit non-zero
+module broken_module (
+  input clk
+  input rst_n
+  // missing closing parenthesis and semicolons

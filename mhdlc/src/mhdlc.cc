@@ -41,30 +41,38 @@ int main(int argc, char *argv[])
 
 
   // process files
+  int fail_cnt = 0;
   ulonglong file_cnt = FILES.size();
   for (ulonglong i = 0; i < file_cnt; ++i ) {
       char *fname;
       string dir_file;
-      if (fname = SearchFile(FILES[i])) 
+      if (fname = SearchFile(FILES[i]))
           dir_file = fname;
       else {
           fprintf(stderr, "**mhdlc:Can't find file '%s'.\n", FILES[i].c_str());
-          exit(1);
+          fail_cnt++;
+          continue;
       }
-          
+
       tFileName f = DecomposeName( dir_file );
 
-    CMHDLwrapper *mwrapper;
-    CSVwrapper *svwrapper;
-    if (f.ext == ".mhdl") {
-      cerr << "\n" << i+1 << "/" << file_cnt << " Parsing MHDL file:" << dir_file << endl;
-      mwrapper = new CMHDLwrapper (dir_file);
-      mwrapper->Parse();
+    try {
+      CMHDLwrapper *mwrapper;
+      CSVwrapper *svwrapper;
+      if (f.ext == ".mhdl") {
+	cerr << "\n" << i+1 << "/" << file_cnt << " Parsing MHDL file:" << dir_file << endl;
+	mwrapper = new CMHDLwrapper (dir_file);
+	mwrapper->Parse();
+      }
+      else {
+	cerr << "\n" << i+1 << "/" << file_cnt << " Parsing SV file:" << dir_file << endl;
+	svwrapper = new CSVwrapper (dir_file);
+	svwrapper->Parse();
+      }
     }
-    else {
-      cerr << "\n" << i+1 << "/" << file_cnt << " Parsing SV file:" << dir_file << endl;
-      svwrapper = new CSVwrapper (dir_file);
-      svwrapper->Parse();
+    catch (const CompileError &e) {
+      cerr << e.what() << endl;
+      fail_cnt++;
     }
   }
 
@@ -114,5 +122,5 @@ int main(int argc, char *argv[])
 	 << "*********************************************************" << endl;
   }
 
-  return 0;
+  return fail_cnt > 0 ? 1 : 0;
 }

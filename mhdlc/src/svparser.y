@@ -438,6 +438,8 @@ module_parameter_port_list : module_parameter_assignment
 
 module_parameter_assignment : parameter_keywords parameter_assignment
 | parameter_keywords "[" expression ":" expression "]" parameter_assignment
+| parameter_assignment
+| "[" expression ":" expression "]" parameter_assignment
 ;
 
 
@@ -1104,7 +1106,14 @@ parameter_keywords : "parameter" parameter_type_or_empty
 ;
 
 parameter_type_or_empty :
-| "reg" {};
+| "reg"
+| "integer"
+| "int"
+| "logic"
+| "bit"
+| "real"
+| "string"
+;
 
 
 parameter_declaration : parameter_keywords parameter_assignments ";" 
@@ -1149,6 +1158,20 @@ parameter_assignment : ID "=" expression
   }
   else {
     CParameter *param = new CParameter (*$6, $8, svwrapper.is_global_param);
+    svwrapper.param_table->Insert(param);
+  }
+}
+| ID
+{
+  if ( svwrapper.param_table->Exist(*$1) ) {
+    svwrapper.error(@1, "redefinition of parameter " + *$1);
+  }
+  else if ( svwrapper.symbol_table->Exist(*$1) ) {
+    svwrapper.error(@1, *$1 + " has already been used as variable in your code.");
+  }
+  else {
+    svwrapper.warning(@1, "parameter " + *$1 + " has no default value, instantiation must override it.");
+    CParameter *param = new CParameter (*$1, new CNumber("0"), svwrapper.is_global_param);
     svwrapper.param_table->Insert(param);
   }
 }

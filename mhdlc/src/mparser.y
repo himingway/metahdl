@@ -2348,6 +2348,14 @@ parameter_rule instance_name connection_spec ";"
   }
   mwrapper.symbol_to_remove.clear();
 
+  // Check for unconnected ports
+  for (map<CSymbol*, CExpression*, CCompareConnection>::iterator iter = connect_map->begin();
+       iter != connect_map->end(); ++iter) {
+    if ( !iter->second ) {
+      mwrapper.warning(@$, "port \"" + iter->first->name + "\" of module \"" + *$1 + "\" is not connected.");
+    }
+  }
+
   $$ = new CBlkInst (@$, *$1, $3, *$4, connect_map);
   $$->GetSymbol();
   $$->SetDriver();

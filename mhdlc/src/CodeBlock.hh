@@ -380,9 +380,10 @@ public:
 	     iter->second->GetSymbol(&rsymbols);
 	  }
 	  else {
-	     cerr << "**Internal ERROR:" << __FILE__ << ":" << __LINE__ 
-		  << ":what direction should it be?? " << iter->first->name << endl;
-	     exit(1);
+	     ostringstream oss;
+	     oss << "**Internal ERROR:" << __FILE__ << ":" << __LINE__
+		  << ":what direction should it be?? " << iter->first->name;
+	     throw CompileError(oss.str());
 	  }
        }
     }

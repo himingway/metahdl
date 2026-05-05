@@ -21,6 +21,8 @@
 #include <iomanip>
 #include <regex>
 #include <algorithm>
+#include <cstdint>
+#include <stdexcept>
 
 using namespace std;
 
@@ -30,9 +32,18 @@ typedef struct {
   string ext;
 } tFileName;
 
-typedef unsigned long long ulonglong;
+using ulonglong = uint64_t;
 
 typedef pair<ulonglong, ulonglong> BasedNum;
+
+struct CompileError : public runtime_error {
+    using runtime_error::runtime_error;
+};
+
+inline bool UseColor() {
+    static bool use_color = isatty(STDERR_FILENO);
+    return use_color;
+}
 
 
 tFileName DecomposeName(const string &name);

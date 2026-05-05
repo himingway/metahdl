@@ -1,4 +1,4 @@
-module test_mpp (
+module test_vpp_advanced (
   clk, 
   data_in, 
   data_out, 

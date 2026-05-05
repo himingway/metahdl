@@ -25,11 +25,14 @@ private:
   string msg;
 
 public:
-  inline CWarningLocMessage (const yy::location &loc_, const string &msg_)  : 
+  inline CWarningLocMessage (const yy::location &loc_, const string &msg_)  :
     loc (loc_), msg (msg_) {};
 
   inline ostream& Print(ostream &os=cerr) {
-    os << "\033[00;35m\n**WARNING:" << loc << ":" << msg << "\033[00m" << endl;
+    if (UseColor()) os << "\033[00;35m";
+    os << "\n**WARNING:" << loc << ":" << msg;
+    if (UseColor()) os << "\033[00m";
+    os << endl;
     return os;
   }
 };
@@ -37,7 +40,7 @@ public:
 // ------------------------------
 //   Wrapper base class
 // ------------------------------
-class CWrapper 
+class CWrapper
 {
 public:
   string filename;
@@ -65,19 +68,16 @@ protected:
 
 
 public:
-  inline CWrapper() {};
-  inline CWrapper(string f, string n) : is_global_param (false), filename (f), _my_name (n) {
+  inline CWrapper() : io_table(NULL), param_table(NULL), symbol_table(NULL) {};
+  inline CWrapper(string f, string n) : is_global_param (false), filename (f), _my_name (n),
+    io_table(NULL), param_table(NULL), symbol_table(NULL) {
     DecomposeName();
     SetPostPPFile();
-    
-    gen_file = module_name;
 
-    io_table = new CIOTab;
-    param_table = new CParamTab;
-    symbol_table = new CSymbolTab;
+    gen_file = module_name;
   }
 
-  inline void RunPP() const 
+  inline void RunPP() const
   {
     FILE *in, *out;
 
@@ -86,28 +86,26 @@ public:
 
     if ( in && out ) {
       int i = preprocess(in, filename, out);
-      fclose(in);
-      fclose(out);
-      if ( i ) {
-	cerr << "**Preprocessor Error: Preprocessor syntax error on file: " << filename << endl;
-	exit(1);
-      }
+	fclose(in);
+	fclose(out);
+	if ( i ) {
+	  throw CompileError("**Preprocessor Error: Preprocessor syntax error on file: " + filename);
+	}
     }
     else {
-      cerr << "**Preprocessor Error: ";
+      string err = "**Preprocessor Error: ";
       if ( !in ) {
-	cerr << filename << " cannot be opened for read. ";
+	err += filename + " cannot be opened for read. ";
       }
       if ( !out ) {
-	cerr << post_pp_file << " cannot be opened for write.";
+	err += post_pp_file + " cannot be opened for write.";
       }
-      cerr << endl;
-      exit(1);
+      throw CompileError(err);
     }
   }
 
 
-  inline void DecomposeName() 
+  inline void DecomposeName()
   {
     size_t pos ;
     string base_filename;
@@ -128,52 +126,62 @@ public:
       module_name  = base_filename.substr(0, pos);
       extension    = base_filename.substr(pos);
     }
-    
-    if (MIRROR.count(path) > 0) 
+
+    if (MIRROR.count(path) > 0)
         workdir = MIRROR[path];
-    else 
+    else
         workdir = V_BASE;
   }
 
-  inline void SetPostPPFile() 
+  inline void SetPostPPFile()
   {
     post_pp_file = workdir + "/" + module_name + extension + ".postpp";
   }
 
   virtual inline void RemovePostPPFile() {
-    if ( !PreservePostPPFile ) 
+    if ( !PreservePostPPFile )
       if ( unlink(post_pp_file.c_str()) ) {
 	cerr << "Cannot unlink " << post_pp_file << endl;
       }
   }
 
-  virtual inline string GetGenFileName() 
+  virtual inline string GetGenFileName()
   {
-    if ( extension == ".mhdl" ) 
+    if ( extension == ".mhdl" )
       return workdir + "/" + gen_file + ".sv";
-    else 
+    else
       return workdir + "/" + gen_file + extension;
   }
 
   inline void error(const int lineno, const string &msg) const {
-    cerr << "\033[00;31m\n**" << _my_name << " Lexer ERROR:" << filename << ":" << lineno << ":" << msg << "\033[00m" << endl;
-    exit(1);
+    ostringstream oss;
+    if (UseColor()) oss << "\033[00;31m";
+    oss << "\n**" << _my_name << " Lexer ERROR:" << filename << ":" << lineno << ":" << msg;
+    if (UseColor()) oss << "\033[00m";
+    throw CompileError(oss.str());
   }
 
   inline  void error(const yy::position &pos, const string &msg) const {
-    cerr << "\033[00;31m\n**" << _my_name << " Lexer ERROR:" << pos << ":" << msg << "\033[00m" << endl;
-    exit(1);
+    ostringstream oss;
+    if (UseColor()) oss << "\033[00;31m";
+    oss << "\n**" << _my_name << " Lexer ERROR:" << pos << ":" << msg;
+    if (UseColor()) oss << "\033[00m";
+    throw CompileError(oss.str());
   }
 
   inline void error(const yy::location &loc, const string &msg) const {
-    cerr << "\033[00;31m\n**" << _my_name << " Parser ERROR:" << loc << ":" << msg << "\033[00m" << endl;
-    exit(1);
+    ostringstream oss;
+    if (UseColor()) oss << "\033[00;31m";
+    oss << "\n**" << _my_name << " Parser ERROR:" << loc << ":" << msg;
+    if (UseColor()) oss << "\033[00m";
+    throw CompileError(oss.str());
   }
-  
+
   virtual inline void warning(const yy::location &loc, const string &msg)  {
-    // CWarningLocMessage *warningmsg = new CWarningLocMessage(loc, msg);
-    // _warning_msg.push_back(warningmsg);
-    cerr << "\033[00;35m\n**" << _my_name << " Parser WARNING:" << loc << ":" << msg << "\033[00m" << endl;
+    if (UseColor()) cerr << "\033[00;35m";
+    cerr << "\n**" << _my_name << " Parser WARNING:" << loc << ":" << msg;
+    if (UseColor()) cerr << "\033[00m";
+    cerr << endl;
   }
 };
 
@@ -220,9 +228,9 @@ public:
 
 private:
   inline CMHDLwrapper() {};
-  
+
 public:
-  inline CMHDLwrapper(string f) : CWrapper(f, "MHDL") 
+  inline CMHDLwrapper(string f) : CWrapper(f, "MHDL")
   {
     in_fsm = false;
     fsm_nc = false;
@@ -232,58 +240,46 @@ public:
     code_blocks  = new vector<CCodeBlock*>;
     mod_template = NULL;
 
-    mctrl["modname"] = new CCtrlValType; // str
+    io_table     = new CIOTab;
+    param_table  = new CParamTab;
+    symbol_table = new CSymbolTab;
+
+    mctrl["modname"] = new CCtrlValType;
     mctrl["modname"]->str = module_name;
 
-    mctrl["portchk"] = new CCtrlValType; // flag
+    mctrl["portchk"] = new CCtrlValType;
 
-    mctrl["outfile"] = new CCtrlValType; // str
+    mctrl["outfile"] = new CCtrlValType;
     mctrl["outfile"]->str = gen_file;
 
-    mctrl["hierachydepth"] = new CCtrlValType; // num
+    mctrl["hierachydepth"] = new CCtrlValType;
     mctrl["hierachydepth"]->num = 300;
-    
-    mctrl["clock"] = new CCtrlValType; // str
+
+    mctrl["clock"] = new CCtrlValType;
     mctrl["clock"]->str = "clk";
 
-    mctrl["reset"] = new CCtrlValType; // str
+    mctrl["reset"] = new CCtrlValType;
     mctrl["reset"]->str = "rst_n";
 
-    mctrl["multidriverchk"] = new CCtrlValType; // flag
+    mctrl["multidriverchk"] = new CCtrlValType;
     mctrl["multidriverchk"]->flag = true;
 
-    mctrl["relaxedfsm"] = new CCtrlValType; // flag
+    mctrl["relaxedfsm"] = new CCtrlValType;
     mctrl["relaxedfsm"]->flag = true;
 
-    mctrl["exitonwarning"] = new CCtrlValType; // flag
-    mctrl["exitonlintwarning"] = new CCtrlValType; // flag
+    mctrl["exitonwarning"] = new CCtrlValType;
+    mctrl["exitonlintwarning"] = new CCtrlValType;
 
-    mctrl["exitonportchk"] = new CCtrlValType; // flag
+    mctrl["exitonportchk"] = new CCtrlValType;
     mctrl["exitonportchk"]->flag = true;
 
-    mctrl["exitonmultidriver"] = new CCtrlValType; // flag
+    mctrl["exitonmultidriver"] = new CCtrlValType;
 
   }
-
-//   inline void warning(const yy::location &loc, const string &msg)  {
-//     CWrapper::warning(loc, msg);
-
-//     if ( mctrl["exitonwarning"]->flag ) {
-//        cerr << "\033[00;31mExit-On-Warning set for module " << mctrl["modname"]->str << ", fix warning or remove this option to continue." << "\033[00m" << endl;
-//       exit(1);
-//     }
-//   }
 
   inline void LintWarning(const string &msg, const string &exit_switch="exitonlintwarning")  {
     _lint_warning_msg.push_back(msg);
     _lint_warning_flag.insert(exit_switch);
-    
-//     cerr << "\033[00;35m**Lint Warning on Module \"" + mctrl["modname"]->str + "\":" + msg << "\033[00m" << endl;
-
-//     if ( mctrl[exit_switch]->flag ) {
-//       cerr << "\033[00;31m\"" << exit_switch << "\" set for module " << mctrl["modname"]->str << ", fix warning or remove this option to continue." << "\033[00m" << endl;
-//       exit(1);
-//     }
   }
 
 
@@ -336,7 +332,7 @@ public:
 	}
       }
 
-      mod = new CModMHDL (module_location, mctrl["modname"]->str, 
+      mod = new CModMHDL (module_location, mctrl["modname"]->str,
 			  io_table, param_table, code_blocks, symbol_table);
       G_ModuleTable.Insert(mod);
 
@@ -349,8 +345,7 @@ public:
 	cerr << "Module \"" << mctrl["modname"]->str << "\" is created in " << GetGenFileName() << endl;
       }
       else {
-	cerr << "**MWrapper Error: Cannot open file " << GetGenFileName() << endl;
-	exit(1);
+	throw CompileError("**MWrapper Error: Cannot open file " + GetGenFileName());
       }
 
       for (vector<CWarningLocMessage*>::iterator iter = _warning_msg.begin();
@@ -358,43 +353,41 @@ public:
 	(*iter)->Print(cerr);
       }
       if ( mctrl["exitonwarning"]->flag ) {
-	exit(1);
+	throw CompileError("exit-on-warning set for module " + mctrl["modname"]->str);
       }
-      
+
       if (_lint_warning_msg.size()) {
+	if (UseColor()) cerr << "\033[00;35m";
 	cerr << endl
-	     << "\033[00;35m**Lint Warning on Module \"" 
-	     << mctrl["modname"]->str << "\":" 
-	     << "\033[00m" 
-	     << endl;	
+	     << "**Lint Warning on Module \""
+	     << mctrl["modname"]->str << "\":";
+	if (UseColor()) cerr << "\033[00m";
+	cerr << endl;
       }
       for (vector<string>::iterator iter = _lint_warning_msg.begin();
 	   iter != _lint_warning_msg.end(); iter++) {
-	cerr << "\033[00;35m"
-	     << (*iter) 
-	     << "\033[00m" 
-	     << endl;	
+	if (UseColor()) cerr << "\033[00;35m";
+	cerr << (*iter);
+	if (UseColor()) cerr << "\033[00m";
+	cerr << endl;
       }
       if (mctrl["exitonlintwarning"]->flag && _lint_warning_msg.size() > 0) {
-	cerr << "\033[00;31m\"exitonlintwarning\" set for module " 
-	     << mctrl["modname"]->str 
-	     << ", fix warning or remove this option to continue." 
-	     << "\033[00m" << endl;
-	exit(1);
+	cerr << "\"exitonlintwarning\" set for module "
+	     << mctrl["modname"]->str
+	     << ", fix warning or remove this option to continue." << endl;
+	throw CompileError("exitonlintwarning");
       }
       else if (mctrl["exitonportchk"]->flag && _lint_warning_flag.count("exitonportchk") > 0) {
-	cerr << "\033[00;31m\"exitonportchk\" set for module " 
-	     << mctrl["modname"]->str 
-	     << ", fix warning or remove this option to continue." 
-	     << "\033[00m" << endl;
-	exit(1);
+	cerr << "\"exitonportchk\" set for module "
+	     << mctrl["modname"]->str
+	     << ", fix warning or remove this option to continue." << endl;
+	throw CompileError("exitonportchk");
       }
       else if (mctrl["exitonmultidriver"]->flag && _lint_warning_flag.count("exitonmultidriver") > 0) {
-	cerr << "\033[00;31m\"exitonmultidriver\" set for module " 
-	     << mctrl["modname"]->str 
-	     << ", fix warning or remove this option to continue." 
-	     << "\033[00m" << endl;
-	exit(1);
+	cerr << "\"exitonmultidriver\" set for module "
+	     << mctrl["modname"]->str
+	     << ", fix warning or remove this option to continue." << endl;
+	throw CompileError("exitonmultidriver");
       }
     }
   }
@@ -435,23 +428,19 @@ public:
 
 class CSVwrapper : public CWrapper
 {
-private: 
+private:
   inline CSVwrapper() {}
-  
+
 public:
-  inline CSVwrapper(string f) : CWrapper(f, "SV") {
-    // these 3 pointers will be constructed in svparser.y
-    delete io_table;       io_table = NULL;
-    delete param_table;    param_table = NULL;
-    delete symbol_table;   symbol_table = NULL;
-  };
+  // Base class no longer allocates tables; svparser.y constructs them
+  inline CSVwrapper(string f) : CWrapper(f, "SV") {};
 
 
   void OpenIO() ;
   void CloseIO() ;
   void Parse();
 
-  inline  void BuildModule() 
+  inline  void BuildModule()
   {
     CModule *mod = G_ModuleTable.Exist(module_name);
     if ( mod ) {

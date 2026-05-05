@@ -49,10 +49,11 @@ public:
       }
 
       if (tokens[0] != "s" || tokens[1] == "" || tokens.size() < 3) {
-          cerr << "\033[00;31m\n**"
-               << "Error:Bad regex:"
-               << cmd << "\033[00m" << endl;
-          exit(1);                    
+          ostringstream oss;
+          if (UseColor()) oss << "\033[00;31m";
+          oss << "\n**Error:Bad regex:" << cmd;
+          if (UseColor()) oss << "\033[00m";
+          throw CompileError(oss.str());
       }
 
       // if (pos != cmd.length()) {

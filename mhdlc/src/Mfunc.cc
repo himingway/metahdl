@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -111,34 +112,33 @@ GetRealpath(const string &path)
     return abspath;
 }
 
-list<string> 
+static void
+CollectSubdirs(const string &dir, list<string> &result)
+{
+    DIR *dp = opendir(dir.c_str());
+    if (!dp) return;
+
+    result.push_back(dir);
+
+    struct dirent *entry;
+    while ((entry = readdir(dp)) != NULL) {
+        if (entry->d_name[0] == '.' && (entry->d_name[1] == '\0' || (entry->d_name[1] == '.' && entry->d_name[2] == '\0')))
+            continue;
+
+        string child = dir + "/" + entry->d_name;
+        struct stat st;
+        if (stat(child.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
+            CollectSubdirs(child, result);
+    }
+    closedir(dp);
+}
+
+list<string>
 GetSubdir(string base)
 {
-    string msg, cmd, dir;
-    FILE *dirlist;
     list<string> dirs;
-
-
-    // base = GetRealpath(base);
-    cmd = "find -L " + base + " -type d";
-
-    dirlist = popen(cmd.c_str(), "r");
-    if (!dirlist) {
-        msg = "Error:'" + cmd + "' execution fail";
-        perror(msg.c_str());
-        exit(1);
-    }
-    else {
-        while (fgets(PATH_BUF, PATH_MAX, dirlist)) {
-            dir = PATH_BUF;
-            dir = dir.substr(0, dir.length()-1); // remove trailing "\n"
-            // cout << dir << endl;
-            dirs.push_back(dir);
-        }
-    }
-    pclose(dirlist);
-
-    return dirs;    
+    CollectSubdirs(base, dirs);
+    return dirs;
 }
 
 
@@ -216,8 +216,23 @@ SearchFile(const string &name)
             dirs = &I_DIRS;
         }
 
+        static map<list<string>*, string> last_hit_dirs;
+        string &last_hit_dir = last_hit_dirs[dirs];
+        if (!last_hit_dir.empty()) {
+            string cached;
+            if ( last_hit_dir[last_hit_dir.length()-1] == '/' )
+                cached = last_hit_dir + name;
+            else
+                cached = last_hit_dir + "/" + name;
+            if ( IsFile(cached.c_str()) ) {
+                path = (char *)calloc(1, strlen(cached.c_str())+1);
+                strcpy(path, cached.c_str());
+                return path;
+            }
+        }
+
         string dir;
-        for ( list<string>::iterator iter = dirs->begin(); 
+        for ( list<string>::iterator iter = dirs->begin();
               iter != dirs->end(); ++iter ) {
             dir = *iter;
             if ( dir[dir.length()-1] == '/' ) {
@@ -228,9 +243,7 @@ SearchFile(const string &name)
             }
       
             if ( IsFile( s.c_str() ) ) {
-                dirs->erase(iter);
-                dirs->push_front(dir);
-
+                last_hit_dir = dir;
                 path = (char *)calloc(1, strlen(s.c_str())+1);
                 strcpy(path, s.c_str());
                 return path;

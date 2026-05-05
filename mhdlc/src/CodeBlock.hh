@@ -14,10 +14,9 @@ protected:
   yy::location _loc;
   int _step;
 
-#if 0
+public:
   set<CSymbol*> lsymbols, rsymbols;
-#endif
-  
+
 public:
   inline CCodeBlock(const yy::location &loc) : _loc (loc), _step (2) {}
   inline CCodeBlock(const yy::location &loc, int step) : _loc (loc), _step (step) {}
@@ -32,12 +31,10 @@ public:
 
   virtual void GetSymbol() =0;
   virtual inline void SetDriver() {
-#if 0
     for (set<CSymbol*>::iterator iter = lsymbols.begin(); 
 	 iter != lsymbols.end(); ++iter) {
       (*iter)->driver.push_back(this);
     }
-#endif
   }
 
 };
@@ -53,9 +50,7 @@ public:
   inline void Print(ostream&os=cout) {PrintLoc(os); os << "assign "; _stmt->Print(os);}
 
   inline void GetSymbol() { 
-#if 0
     _stmt->GetSymbol(&lsymbols, &rsymbols); 
-#endif
   }
 };
 
@@ -99,9 +94,7 @@ public:
   }
   
   inline void GetSymbol() {
-#if 0    
     _stmt->GetSymbol(&lsymbols, &rsymbols);
-#endif
   }
     
   
@@ -138,10 +131,8 @@ public:
   }
 
   inline void GetSymbol(set<CSymbol*> *lsymb, set<CSymbol*> *rsymb) {
-#if 0
     _dst->GetSymbol(lsymb);
     _src->GetSymbol(rsymb);
-#endif
   }
 };
 
@@ -208,7 +199,6 @@ public:
   }
 
   inline void GetSymbol() {
-#if 0
     rsymbols.insert(_clk); 
     if ( _rst ) rsymbols.insert(_rst);
 
@@ -216,7 +206,6 @@ public:
 	 iter != _ff_items->end(); ++iter) {
       (*iter)->GetSymbol(&lsymbols, &rsymbols);
     }
-#endif
   }
 
 
@@ -272,12 +261,10 @@ class CBlkLegacyFF : public CCodeBlock
       }
 
       inline void GetSymbol() {
-#if 0
 	 rsymbols.insert(_clk); 
 	 if ( _rst ) rsymbols.insert(_rst);
 	 
 	 _stmt->GetSymbol(&lsymbols, &rsymbols);
-#endif
       }
 };
 
@@ -379,7 +366,6 @@ public:
   }
 
   inline void GetSymbol() {
-#if 0
     for (map<CSymbol*, CExpression*, CCompareConnection>::iterator iter = _connection->begin(); 
 	 iter != _connection->end(); ++iter) {
        if ( iter->second ) {
@@ -400,7 +386,6 @@ public:
 	  }
        }
     }
-#endif
   }
 
 };
@@ -424,9 +409,7 @@ public:
   inline CCaseItem* CaseItem() { return _stmt;}
 
   inline void GetSymbol(set<CSymbol*> *lsymb, set<CSymbol*> *rsymb) {
-#if 0
     _stmt->GetSymbol(lsymb, rsymb);
-#endif
   }
 
 private:
@@ -637,17 +620,13 @@ public:
   }
 
   inline void GetSymbol() {
-#if 0
     _ff->GetSymbol();
     _body->GetSymbol();
-#endif
   }
 
   inline void SetDriver() {
-#if 0
     _ff->SetDriver();
     _body->SetDriver();
-#endif
   }
 
 };
@@ -690,7 +669,22 @@ public:
     os << "endgenerate" << endl;
   }
 
-  inline void GetSymbol() {}
+  inline void GetSymbol() {
+    for (vector<CCodeBlock*>::iterator iter = _blocks->begin();
+         iter != _blocks->end(); ++iter) {
+      (*iter)->GetSymbol();
+      lsymbols.insert((*iter)->lsymbols.begin(), (*iter)->lsymbols.end());
+      rsymbols.insert((*iter)->rsymbols.begin(), (*iter)->rsymbols.end());
+    }
+  }
+
+  inline void SetDriver() {
+    for (vector<CCodeBlock*>::iterator iter = _blocks->begin();
+         iter != _blocks->end(); ++iter) {
+      (*iter)->SetDriver();
+    }
+    CCodeBlock::SetDriver();
+  }
 };
 
 
@@ -712,7 +706,22 @@ public:
     os << "end" << endl;
   }
 
-  inline void GetSymbol() {}
+  inline void GetSymbol() {
+    for (vector<CCodeBlock*>::iterator iter = _blocks->begin();
+         iter != _blocks->end(); ++iter) {
+      (*iter)->GetSymbol();
+      lsymbols.insert((*iter)->lsymbols.begin(), (*iter)->lsymbols.end());
+      rsymbols.insert((*iter)->rsymbols.begin(), (*iter)->rsymbols.end());
+    }
+  }
+
+  inline void SetDriver() {
+    for (vector<CCodeBlock*>::iterator iter = _blocks->begin();
+         iter != _blocks->end(); ++iter) {
+      (*iter)->SetDriver();
+    }
+    CCodeBlock::SetDriver();
+  }
 };
 
 class CBlkGenNamed : public CCodeBlock
@@ -734,7 +743,22 @@ public:
     os << "end" << endl;
   }
 
-  inline void GetSymbol() {}
+  inline void GetSymbol() {
+    for (vector<CCodeBlock*>::iterator iter = _blocks->begin();
+         iter != _blocks->end(); ++iter) {
+      (*iter)->GetSymbol();
+      lsymbols.insert((*iter)->lsymbols.begin(), (*iter)->lsymbols.end());
+      rsymbols.insert((*iter)->rsymbols.begin(), (*iter)->rsymbols.end());
+    }
+  }
+
+  inline void SetDriver() {
+    for (vector<CCodeBlock*>::iterator iter = _blocks->begin();
+         iter != _blocks->end(); ++iter) {
+      (*iter)->SetDriver();
+    }
+    CCodeBlock::SetDriver();
+  }
 };
 
 class CBlkGenFor : public CCodeBlock
@@ -767,7 +791,16 @@ public:
     os << "end" << endl;
   }
 
-  inline void GetSymbol() {}
+  inline void GetSymbol() {
+    _body->GetSymbol();
+    lsymbols.insert(_body->lsymbols.begin(), _body->lsymbols.end());
+    rsymbols.insert(_body->rsymbols.begin(), _body->rsymbols.end());
+  }
+
+  inline void SetDriver() {
+    _body->SetDriver();
+    CCodeBlock::SetDriver();
+  }
 };
 
 class CBlkGenIf : public CCodeBlock
@@ -793,7 +826,22 @@ public:
     }
   }
 
-  inline void GetSymbol() {}
+  inline void GetSymbol() {
+    _then_block->GetSymbol();
+    lsymbols.insert(_then_block->lsymbols.begin(), _then_block->lsymbols.end());
+    rsymbols.insert(_then_block->rsymbols.begin(), _then_block->rsymbols.end());
+    if (_else_block) {
+      _else_block->GetSymbol();
+      lsymbols.insert(_else_block->lsymbols.begin(), _else_block->lsymbols.end());
+      rsymbols.insert(_else_block->rsymbols.begin(), _else_block->rsymbols.end());
+    }
+  }
+
+  inline void SetDriver() {
+    _then_block->SetDriver();
+    if (_else_block) _else_block->SetDriver();
+    CCodeBlock::SetDriver();
+  }
 };
 
 class CBlkGenCase : public CCodeBlock
@@ -816,7 +864,16 @@ public:
     os << "endcase" << endl;
   }
 
-  inline void GetSymbol() {}
+  inline void GetSymbol() {
+    for (vector<CCaseItem*>::iterator iter = _items->begin();
+         iter != _items->end(); ++iter) {
+      (*iter)->GetSymbol(&lsymbols, &rsymbols);
+    }
+  }
+
+  inline void SetDriver() {
+    CCodeBlock::SetDriver();
+  }
 };
 
 inline void CCaseItem::Print(ostream &os, int indent) {
@@ -829,6 +886,19 @@ inline void CCaseItem::Print(ostream &os, int indent) {
   os << " : " << endl;
   if (_blk) _blk->Print(os);
   else _stmt->Print(os, indent+_step);
+}
+
+inline void CCaseItem::GetSymbol(set<CSymbol*> *lsymb, set<CSymbol*> *rsymb) {
+  for (vector<CExpression*>::iterator iter = _cond->begin();
+       iter != _cond->end(); ++iter ) {
+    (*iter)->GetSymbol(rsymb);
+  }
+  if (_stmt) _stmt->GetSymbol(lsymb, rsymb);
+  if (_blk) {
+    _blk->GetSymbol();
+    lsymb->insert(_blk->lsymbols.begin(), _blk->lsymbols.end());
+    rsymb->insert(_blk->rsymbols.begin(), _blk->rsymbols.end());
+  }
 }
 
 #endif

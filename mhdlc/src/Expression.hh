@@ -182,6 +182,8 @@ public:
 };
 
 
+class CCodeBlock;
+
 // ------------------------------
 //   CSymbol
 // ------------------------------
@@ -206,9 +208,7 @@ public:
   bool is_local;
   CExpression* value;
 
-#if 0
   vector<CCodeBlock*> driver;
-#endif
 
   vector<yy::location> loccur, roccur;
   CSymbol *reference;
@@ -533,38 +533,6 @@ struct CCompareConnection
 
 
 
-#if 0
-// ------------------------------
-//   CNet
-// ------------------------------
-class CNet : public CExpression
-{
-public:
-  inline CNet() {}
-
-  virtual inline bool IsConst() = 0;
-  virtual inline ulonglong Width()  = 0;
-  virtual inline ulonglong Value()  = 0;
-  virtual inline CExpression* ValueExp() = 0;
-  virtual inline CExpression* Reduce() =0;
-  virtual inline void Print(ostream&os=cout) = 0;
-
-  virtual inline bool Update(tDirection direction) {};
-  virtual inline bool Update(CExpression *msb) {};
-  virtual inline void GetSymbol(set<CSymbol*> *) {};
-  
-  virtual inline void AddLoccure(yy::location loc) {};
-  virtual inline void AddRoccure(yy::location loc) {};
-  
-  virtual bool Update(tType) =0;
-
-  virtual bool HasParam() =0;
-
-};
-#endif
-
-
-
 class CParameter : public CExpression
 {
 private:
@@ -798,11 +766,9 @@ public:
   inline CExpression* Msb() {return _msb;}
   inline CExpression* Lsb() {return _lsb;}
   inline void GetSymbol(set<CSymbol*> *st) {
-#if 0
      st->insert(_symbol);
      if (_msb) _msb->GetSymbol( st );
      if (_lsb )_lsb->GetSymbol( st );
-#endif
   }
 
   inline void AddLoccure(yy::location loc) {_symbol->loccur.push_back(loc);}
@@ -867,11 +833,9 @@ public:
   }
 
   inline void GetSymbol(set<CSymbol*> *st) {
-#if 0
     _cond->GetSymbol(st);
     _t_opt->GetSymbol(st);
     _f_opt->GetSymbol(st);
-#endif
   }
 
   inline bool HasParam() {
@@ -1031,12 +995,10 @@ public:
   }
 
   inline void GetSymbol(set<CSymbol*> *st) {
-#if 0
     for ( vector<CExpression*>::iterator iter = _args->begin(); 
 	  iter != _args->end(); ++iter) {
       (*iter)->GetSymbol(st);
     }
-#endif
   }
 
   inline bool HasParam() {
@@ -1128,9 +1090,7 @@ public:
   inline CExpression* Reduce() {return IsConst() ? _exp->Reduce() : NULL;}
   inline void         Print(ostream& os=cout) {os << "(";_exp->Print(os);os<<")";}
   inline void         GetSymbol(set<CSymbol*> *st) {
-#if 0
     _exp->GetSymbol(st);
-#endif
   }
   inline bool         HasParam() {return _exp->HasParam();}
 
@@ -1216,12 +1176,10 @@ public:
   }
   
   inline void GetSymbol(set<CSymbol*> *st) {
-#if 0
     for (vector<CExpression*>::iterator iter = _exp_list->begin(); 
 	 iter != _exp_list->end(); ++iter) {
       (*iter)->GetSymbol(st);
     }
-#endif
   }
 
   inline bool HasParam() {
@@ -1303,16 +1261,12 @@ public:
 
   inline ulonglong Value() {
     if ( _times->IsConst() ) {
-      CNumber *num = new CNumber(_exp_concat->Width(), _exp_concat->Value());
-      string str = num->BinStr(num->Width());
+      CNumber num(_exp_concat->Width(), _exp_concat->Value());
+      string str = num.BinStr(num.Width());
       for ( ulonglong i=1; i<_times->Value(); ++i) {
 	str = str + str;
       }
-      CNumber *val = new CNumber(str, 2);
-      return val->Value();
-
-      delete num;
-      delete val;
+      return StoI(str, 2);
     }
     else {
       cerr << "**Error:" << __FILE__ << ":" << __LINE__ << ":" 
@@ -1342,10 +1296,8 @@ public:
   }
 
   inline void GetSymbol(set<CSymbol*> *st) {
-#if 0
     _times->GetSymbol(st);
     _exp_concat->GetSymbol(st);
-#endif
   }
   
   inline bool HasParam() {
@@ -1415,9 +1367,7 @@ public:
   }
 
   virtual inline void GetSymbol(set<CSymbol*> *st) {
-#if 0
     _exp->GetSymbol(st);
-#endif
   }
 
   virtual inline bool HasParam() {
@@ -1572,10 +1522,8 @@ public:
   }
 
   virtual inline void GetSymbol(set<CSymbol*> *st) {
-#if 0
     _exp_a->GetSymbol(st);
     _exp_b->GetSymbol(st);
-#endif
   }
 
   virtual inline bool HasParam() {

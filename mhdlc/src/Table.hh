@@ -262,44 +262,44 @@ public:
   }
 
 
-  inline string & ChkMissingPort() {
-    string *msg = new string;
+  inline string ChkMissingPort() {
+    ostringstream buf;
 
     for (map<string, CSymbol*>::iterator iter = _port.begin();
 	 iter != _port.end(); ++iter) {
         if (iter->second->force_port) {
             if (iter->second->direction == INPUT && iter->second->roccur.size()) {
-                (*msg) = (*msg) + " force input port \"" + iter->second->name + "\" should not be used as RHV\n";
+                buf << " force input port \"" << iter->second->name << "\" should not be used as RHV\n";
             }
             else if (iter->second->direction == OUTPUT && iter->second->loccur.size()) {
-                (*msg) = (*msg) + " force output port \"" + iter->second->name + "\" should not be used as LHV\n";
+                buf << " force output port \"" << iter->second->name << "\" should not be used as LHV\n";
             }
             else if (iter->second->direction == INOUT && (iter->second->roccur.size() || iter->second->loccur.size())) {
-                (*msg) = (*msg) + " force inout port \"" + iter->second->name + "\" should not be used as LHV nor RHV\n";
+                buf << " force inout port \"" << iter->second->name << "\" should not be used as LHV nor RHV\n";
             }
         }
         else {
             if ( iter->second->direction == INPUT ) {
                 if ( iter->second->roccur.size() == 0 ) {
-                    (*msg) = (*msg) + "  missing input \"" + iter->second->name + "\"\n"; //  has no load.\n";
+                    buf << "  missing input \"" << iter->second->name << "\"\n";
                 }
             }
             else if ( iter->second->direction == OUTPUT ) {
                 if ( iter->second->loccur.size() == 0 ) {
-                    (*msg) = (*msg) + "  missing output \"" + iter->second->name + "\"\n"; //  has no driver.\n";
+                    buf << "  missing output \"" << iter->second->name << "\"\n";
                 }
             }
             else if ( iter->second->direction == INOUT ) {
                 if ( iter->second->roccur.size() == 0 ) {
-                    (*msg) = (*msg) + "  missing load for inout \"" + iter->second->name + "\"\n"; //  has no load.\n";
+                    buf << "  missing load for inout \"" << iter->second->name << "\"\n";
                 }
                 if ( iter->second->loccur.size() == 0 ) {
-                    (*msg) = (*msg) + "  missing driver for inout \"" + iter->second->name + "\"\n"; //  has no driver.\n";
+                    buf << "  missing driver for inout \"" << iter->second->name << "\"\n";
                 }
             }
         }
     }
-    return (*msg);
+    return buf.str();
   }
 
 
@@ -370,34 +370,36 @@ public:
     }
   }
 
-  inline string& ExtractIO(CIOTab* IOTable) {
-    string *msg = new string;
+  inline string ExtractIO(CIOTab* IOTable) {
+    ostringstream buf;
 
     for (map<string, CSymbol*>::iterator iter = _symbols.begin();
 	 iter != _symbols.end(); ++iter) {
       switch ( (*iter).second->direction ) {
-      case INPUT: 
+      case INPUT:
 	if ( !IOTable->Exist(iter->first) ) {
-	  (*msg) = (*msg) + "  new input \"" + iter->first + "\"\n";
+	  buf << "  new input \"" << iter->first << "\"\n";
 	  IOTable->Insert( (*iter).second );
 	}
 	break;
 
-      case OUTPUT: 
+      case OUTPUT:
 	if ( !IOTable->Exist(iter->first) ) {
-	  (*msg) = (*msg) + "  new output \"" + iter->first + "\"\n";
+	  buf << "  new output \"" << iter->first << "\"\n";
 	  IOTable->Insert( (*iter).second );
 	}
+	break;
 
       case INOUT:
 	if ( !IOTable->Exist(iter->first) ) {
-	  (*msg) = (*msg) + "  new inout \"" + iter->first + "\"\n";
+	  buf << "  new inout \"" << iter->first << "\"\n";
 	  IOTable->Insert( (*iter).second );
 	}
+	break;
       }
     }
     IOTable->Reset();
-    return (*msg);
+    return buf.str();
   }
 
   inline void PrintDeclare(ostream &os=cout) {
@@ -407,10 +409,8 @@ public:
     }
   }
 
-#if 0
-  inline string& ChkMultiDriver() {
+  inline string ChkMultiDriver() {
     ostringstream buf;
-    string *msg = new string;
 
     for ( map<string, CSymbol*>::iterator iter = _symbols.begin(); 
 	  iter != _symbols.end(); ++iter) {
@@ -424,10 +424,8 @@ public:
       }
     }
 
-    (*msg) = (*msg) + buf.str();
-    return (*msg);
+    return buf.str();
   }
-#endif
 
 };
 

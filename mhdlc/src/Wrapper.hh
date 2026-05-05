@@ -115,7 +115,6 @@ public:
     char *str = (char *)calloc(1, strlen(filename.c_str())+1);
     strcpy(str, filename.c_str());
     path = dirname(str);
-    cout << filename << ":" << path << endl;
 
     strcpy(str, filename.c_str());
     base_filename = basename(str);
@@ -328,7 +327,6 @@ public:
       }
 
 
-#if 0
       // multi-driver checking
       if ( mctrl["multidriverchk"]->flag ) {
 	msg = "";
@@ -337,7 +335,6 @@ public:
 	  LintWarning("Multiple Driver Report:\n" + msg, "exitonmultidriver");
 	}
       }
-#endif
 
       mod = new CModMHDL (module_location, mctrl["modname"]->str, 
 			  io_table, param_table, code_blocks, symbol_table);
@@ -443,10 +440,10 @@ private:
   
 public:
   inline CSVwrapper(string f) : CWrapper(f, "SV") {
-    // these 3 pointers will construted in svparser.y
-    delete io_table;
-    delete param_table;
-    delete symbol_table;
+    // these 3 pointers will be constructed in svparser.y
+    delete io_table;       io_table = NULL;
+    delete param_table;    param_table = NULL;
+    delete symbol_table;   symbol_table = NULL;
   };
 
 

@@ -67,6 +67,7 @@ copyright notice and this notice must be preserved on all copies.  */
 #include "common.h"
 #include "yacc_stuff.h"
 #include "proto.h"
+#include "Mfunc.hh"
 
 char ttid[MAXNAME];
 var_list *head_table = NULL;
@@ -218,8 +219,7 @@ case_declaration : TTCASE {set_to_vpp_mode();} expression optional_colon '\n'
 		      set_to_last_mode();
 		    }
  		    else {
-		      fprintf(stderr,"ERROR : got default without matching switch!!!\n");
-		      exit(1);
+		      throw CompileError(string(current_file) + ": ERROR: got default without matching switch!!!");
 		      set_to_initial_mode();
 		    }
 		}
@@ -243,8 +243,7 @@ default_declaration : TTDEFAULT {set_to_vpp_mode();} optional_colon vpp_line_ter
 		      set_to_last_mode();
 		    }
  		    else {
-		      fprintf(stderr,"ERROR : got default without matching switch!!!\n");
-		      exit(1);
+		      throw CompileError(string(current_file) + ": ERROR: got default without matching switch!!!");
 		      set_to_initial_mode();
 		    }
 		}
@@ -264,8 +263,7 @@ breaksw_declaration : TTBREAKSW {set_to_vpp_mode();} vpp_line_termination
 		      set_to_last_mode();
 		    }
  		    else {
-		      fprintf(stderr,"ERROR : got breaksw without matching switch!!!\n");
-		      exit(1);
+		      throw CompileError(string(current_file) + ": ERROR: got breaksw without matching switch!!!");
 		      set_to_initial_mode();
 		    }
 		}
@@ -283,8 +281,7 @@ endswitch_declaration : TTENDSWITCH {set_to_vpp_mode();} vpp_line_termination_op
 							    NULL)
 				  );
  		    else {
-		      fprintf(stderr,"ERROR : got an endswitch without matching switch!!!\n");
-		      exit(1);
+		      throw CompileError(string(current_file) + ": ERROR: got an endswitch without matching switch!!!");
 		    }
 		    if (loop_struct_count != 0) {
 			loop_struct_count--;
@@ -352,9 +349,7 @@ endfor_declaration : TTENDFOR {set_to_last_mode();} vpp_line_termination_opt
 							    NULL)
 				  );
  		    else {
-                        yyerror("Error: got an endfor without matching for!!!\n");
-                        // fprintf(stderr, "Error: got an endfor without matching for!!!\n");
-		      exit(1);
+                        throw CompileError(string(current_file) + ": ERROR: got an endfor without matching for!!!");
 		    }
 		    
 
@@ -383,8 +378,7 @@ endwhile_declaration : TTENDWHILE {set_to_vpp_mode();} vpp_line_termination_opt
 							    NULL)
 				  );
 		    else {
-		      fprintf(stderr,"ERROR : got an endwhile without matching while!!!\n");
-		      exit(1);
+		      throw CompileError(string(current_file) + ": ERROR: got an endwhile without matching while!!!");
 		    }
 
 		    if (loop_struct_count != 0) {
@@ -463,8 +457,7 @@ else_declaration : TTELSE {set_to_vpp_mode();} vpp_line_termination
 							    NULL)
 				  );
 		    else {
-		      fprintf(stderr,"ERROR : got an else without matching if!!!\n");
-		      exit(1);
+		      throw CompileError(string(current_file) + ": ERROR: got an else without matching if!!!");
 		    }
 		    set_to_last_mode();
 		}
@@ -482,8 +475,7 @@ endif_declaration : TTENDIF {set_to_vpp_mode();} vpp_line_termination_opt
 					    NULL)
 				    );
  		    else {
-		      fprintf(stderr,"ERROR : got an endif without matching if!!!\n");
-		      exit(1);
+		      throw CompileError(string(current_file) + ": ERROR: got an endif without matching if!!!");
 		    }
 		    if (loop_struct_count != 0) {
 			loop_struct_count--;
@@ -636,7 +628,7 @@ yyerror(char *s)
     if (yyerror_count > 100) {
 	fflush(stdout);
 	fprintf(stderr, "\nToo many errors, giving up.\n");
-	exit(yyerror_count);
+	throw CompileError(string(current_file) + ": too many preprocessor errors");
     }
 }
 
@@ -674,7 +666,7 @@ yywrap ()
             }
             if (decl_type != 0)
                 fprintf(stderr, fmt_str, decl_type, line);
-            exit(1);
+		throw CompileError(string(current_file) + ": ERROR: unknown declaration type");
         }
     }
     return (1);

@@ -11,6 +11,7 @@
 #include <iostream>
 #include <stack>
 
+#include "Mfunc.hh"
 #include "svparser.bison.hh"
 #include "MetaHDL.hh"
 
@@ -798,16 +799,18 @@ CSVwrapper::OpenIO()
   svout = fopen(gen_file_path_name.c_str(), "w");
 
   if ( !svin ) {
-     cerr << "\033[00;31m\n**" 
-	  << "SV Lexer ERROR:\"" << filename << "\" pass PP, but temp file is losted." 
-	  << "\033[00m" << endl;
-     exit(1);
+     ostringstream _oss;
+     if (UseColor()) _oss << "\033[00;31m";
+     _oss << "SV Lexer ERROR: \"" << filename << "\" passed PP, but temp file is lost";
+     if (UseColor()) _oss << "\033[00m";
+     throw CompileError(_oss.str());
   }
   else if ( !svout ) {
-     cerr << "\033[00;31m\n**" 
-	  << "SV Lexer ERROR:\"" << gen_file_path_name << "\" cannot be opened for write."
-	  << "\033[00m" << endl;
-     exit(1);
+     ostringstream _oss;
+     if (UseColor()) _oss << "\033[00;31m";
+     _oss << "SV Lexer ERROR: \"" << gen_file_path_name << "\" cannot be opened for write";
+     if (UseColor()) _oss << "\033[00m";
+     throw CompileError(_oss.str());
   }
 
 }

@@ -28,6 +28,7 @@ copyright notice and this notice must be preserved on all copies.  */
 #include <iostream>
 #include <sstream>
 using namespace std;
+#include "Mfunc.hh"
 #include "common.h"
 #include "yacc_stuff.h"
 #include "proto.h"
@@ -232,10 +233,7 @@ MEM		\[[^;\n\]]*\]
 
 
 <INITIAL,DEFINE,MACRO,CMNT,CCMNT,MPP,COPY,INCL,SKIP_TO_EOL>`line.*\n {
-  fprintf(stderr, 
-	  "**PP Lexer Error:%s:%d:`line does not supported\n", 
-	  current_file, yylineno); 
-  exit(1);
+  { ostringstream _oss; _oss << current_file << ":" << yylineno << ": `line directive not supported"; throw CompileError(_oss.str()); }
 }
 
 
@@ -329,8 +327,7 @@ MEM		\[[^;\n\]]*\]
     inc_file_name[e-s-1] = '\0';
   }
   else {
-    fprintf(stderr, "** `include file name should be quoted by double-quote: \".\n");
-    exit(1);
+    throw CompileError(string(current_file) + ": `include file name should be quoted by double-quote");
   }
 
 
@@ -343,8 +340,7 @@ MEM		\[[^;\n\]]*\]
 
   full_inc_file_name = SearchFile(inc_file_name);
   if (!full_inc_file_name) {
-    fprintf(stderr, "ERROR : `%s' : file not found\n", inc_file_name);
-    exit(1);
+    throw CompileError(string(current_file) + ": `include file not found: " + string(inc_file_name));
     BEGIN(SKIP_TO_EOL);
   }
   else {
@@ -361,8 +357,7 @@ MEM		\[[^;\n\]]*\]
     nl_count = 1;
     yyin = fopen(full_inc_file_name, "r");
     if ( !yyin ) {
-      fprintf(stderr, "ERROR: %s exists, but cannot open for read!\n", full_inc_file_name);
-      exit(1);
+      throw CompileError(string(current_file) + ": cannot open include file for read: " + string(full_inc_file_name));
     }
     else {
       yy_switch_to_buffer(yy_create_buffer(yyin, YY_BUF_SIZE)); 
@@ -426,8 +421,7 @@ MEM		\[[^;\n\]]*\]
 
 	 if ( val[0] == '`' ) {
 	    if ( RecursiveMacroLevel >= 20 ) {
-	       fprintf(stderr, "**VPP Error:%s:\"%s\":20 levels of reference detected on macro \"%s\", most probably caused by macro definition loop.\n", current_file, current_line, val.c_str());
-	       exit(1);
+	       { ostringstream _oss; _oss << current_file << ": " << current_line << ": recursive macro loop detected (20+ levels) on macro `" << val << "`"; throw CompileError(_oss.str()); }
 	    }
 	    else {
 	       ++RecursiveMacroLevel;
@@ -974,8 +968,7 @@ get_macro_value(char *name)
    np = lookup_define(Defines_Table, strg, vpphash(strg));
    if (np != 0) {
       if (set_macro_values(np->parms, tmp) < 0) {
-	 fprintf(stderr,"ERROR : wrong number of parameters for `%s\n",np->macro_name);
-	 exit(1);
+	 { ostringstream _oss; _oss << current_file << ": wrong number of parameters for macro `" << np->macro_name << "`"; throw CompileError(_oss.str()); }
       }
       len = strlen(np->macro);
       i = j = 0;
@@ -1069,8 +1062,7 @@ print_variable(char *name, int expand_define)
     if (np != 0) {
 	if (expand_define) {
 	    if (set_macro_values(np->parms, tmp) < 0) {
-		fprintf(stderr,"ERROR : wrong number of parameters for `%s\n",np->macro_name);
-		exit(1);
+		{ ostringstream _oss; _oss << current_file << ": wrong number of parameters for macro `" << np->macro_name << "`"; throw CompileError(_oss.str()); }
 		return;
 	    }
 	    len = strlen(np->macro);
